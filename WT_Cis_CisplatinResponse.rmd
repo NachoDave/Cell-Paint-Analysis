@@ -13,25 +13,209 @@ library(data.table)
 library(ggplot2)
 library(reshape2)
 library(caret)
-source("/data/CEAT/ImageDatasets/R_Code/CellPaint2022/cellPaintFunctions.r")
+source("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/RScripts_011122/cellPaintFunctions.r")
 ```
 
-## R Markdown
+## RLoad datasets
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r features to remove}
+# Features to remove (because of NA columns or location parameters)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+NACols <- c("AreaShape_NormalizedMoment_0_0_nuc", "AreaShape_NormalizedMoment_0_1_nuc",  "AreaShape_NormalizedMoment_1_0_nuc",  "AreaShape_NormalizedMoment_0_0_cell",
+ "AreaShape_NormalizedMoment_0_1_cell", "AreaShape_NormalizedMoment_1_0_cell", "AreaShape_NormalizedMoment_0_0_cyto", "AreaShape_NormalizedMoment_0_1_cyto",
+"AreaShape_NormalizedMoment_1_0_cyto",
+"Location",
+"Orientation",
+"AreaShape_Center_.",
+"AreaShape_BoundingBoxMaximum_",
+"AreaShape_BoundingBoxMinimum_",
+"AreaShape_EulerNumber_",
+#"FileName",
+'Number_Object_Number_nuc', 
+'PathName', 
+'Parent'
+  )
 
-```{r cars}
-summary(cars)
 ```
 
-## Including Plots
+## Load datasets
 
-You can also embed plots, for example:
+```{r, echo=FALSE}
+
+# Plate 1 WT
+P1_WT <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/headlessTest/P1/P1_Results/", 
+                     prefix = "WT_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
+
+P1_WT_NucLocs <- nucLoc(P1_WT)
+P1_WT <- rmColumns(P1_WT, NACols)
+P1_WT <- cpMakeMeta("P1", list(c( "500", "2000", "5000", "10000", "20000", "40000", "80000"), c( "500", "2000", "5000", "10000", "20000", "40000", "80000"), 
+                              c("1.25", "2.5", "5", "10", "20", "40", "80"), c("1.25", "2.5", "5", "10", "20", "40", "80"),
+                              c("6.25", "12.5", "25", "50", "100", "200", "400"), c("6.25", "12.5", "25", "50", "100", "200", "400")), 
+                 c("A", "A", "E", "E","F", "F"), P1_WT, 
+                 "WT", 1:6, 
+                 c("Cisplatin", "Cisplatin", "Dinaciclib", "Dinaciclib", "Doxorubicin", "Doxorubicin"))
+
+# Plate 1 cis
+P1_Cis <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/RBGO_Storage/ResultsCisP01to04_09to12/P1/P1_Results/", 
+                     prefix = "Cis_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
+
+P1_Cis_NucLocs <- nucLoc(P1_Cis)
+P1_Cis <- rmColumns(P1_Cis, NACols)
+
+P1_Cis <- cpMakeMeta("P1", list(c( "500", "2000", "5000", "10000", "20000", "40000", "80000"), c( "500", "2000", "5000", "10000", "20000", "40000", "80000"), 
+                              c("1.25", "2.5", "5", "10", "20", "40", "80"), c("1.25", "2.5", "5", "10", "20", "40", "80"),
+                              c("6.25", "12.5", "25", "50", "100", "200", "400"), c("6.25", "12.5", "25", "50", "100", "200", "400")), 
+                 c("A", "A", "E", "E","F", "F"), P1_Cis, 
+                 "WT", 7:12, 
+                 c("Cisplatin", "Cisplatin", "Dinaciclib", "Dinaciclib", "Doxorubicin", "Doxorubicin"))
+
+# Plate 5 WT
+P5_WT <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/P5/P5_Results/", 
+                     prefix = "WT_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
+
+P5_WT_NucLocs <- nucLoc(P5_WT)
+P5_WT <- rmColumns(P5_WT, NACols)
+
+P5_WT <- cpMakeMeta("P1", list(c( "500", "2000", "5000", "10000", "20000", "40000", "80000"), c( "500", "2000", "5000", "10000", "20000", "40000", "80000"), 
+                              c("1.25", "2.5", "5", "10", "20", "40", "80"), c("1.25", "2.5", "5", "10", "20", "40", "80"),
+                              c("6.25", "12.5", "25", "50", "100", "200", "400"), c("6.25", "12.5", "25", "50", "100", "200", "400")), 
+                 c("A", "A", "E", "E","F", "F"), P5_WT, 
+                 "WT", 7:12, 
+                 c("Cisplatin", "Cisplatin", "Dinaciclib", "Dinaciclib", "Doxorubicin", "Doxorubicin"))
+
+# Plate 5 Cis
+P5_Cis <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/P5/P5_Results/", 
+                     prefix = "Cis_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
+
+P5_Cis_NucLocs <- nucLoc(P5_Cis)
+P5_Cis <- rmColumns(P5_Cis, NACols)
+
+P5_Cis <- cpMakeMeta("P1", list(c( "500", "2000", "5000", "10000", "20000", "40000", "80000"), c( "500", "2000", "5000", "10000", "20000", "40000", "80000"), 
+                              c("1.25", "2.5", "5", "10", "20", "40", "80"), c("1.25", "2.5", "5", "10", "20", "40", "80"),
+                              c("6.25", "12.5", "25", "50", "100", "200", "400"), c("6.25", "12.5", "25", "50", "100", "200", "400")), 
+                 c("A", "A", "E", "E","F", "F"), P5_Cis, 
+                 "WT", 1:6, 
+                 c("Cisplatin", "Cisplatin", "Dinaciclib", "Dinaciclib", "Doxorubicin", "Doxorubicin"))
+
+# # Plate 6 WT
+# P6_WT <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/P6/P6_Results/", 
+#                      prefix = "WT_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
+# 
+# P6_WT_NucLocs <- nucLoc(P6_WT)
+# P6_WT <- rmColumns(P6_WT, NACols)
+
+
+# Plate 9 WT
+P9_WT <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/headlessTest/P9/P9_Results/", 
+                     prefix = "WT_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
+
+P9_WT_NucLocs <- nucLoc(P9_WT)
+P9_WT <- rmColumns(P9_WT, NACols)
+
+P9_WT <- cpMakeMeta("P1", list(c( "500", "2000", "5000", "10000", "20000", "40000", "80000"), c( "500", "2000", "5000", "10000", "20000", "40000", "80000"), 
+                              c("1.25", "2.5", "5", "10", "20", "40", "80"), c("1.25", "2.5", "5", "10", "20", "40", "80"),
+                              c("6.25", "12.5", "25", "50", "100", "200", "400"), c("6.25", "12.5", "25", "50", "100", "200", "400")), 
+                 c("A", "A", "E", "E","F", "F"), P9_WT, 
+                 "WT", 1:6, 
+                 c("Cisplatin", "Cisplatin", "Dinaciclib", "Dinaciclib", "Doxorubicin", "Doxorubicin"))
+
+# Plate 9 Cis
+P9_Cis <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/RBGO_Storage/ResultsCisP01to04_09to12/P9/P9_Results/", 
+                     prefix = "Cis_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
+
+P9_Cis_NucLocs <- nucLoc(P9_Cis)
+P9_Cis <- rmColumns(P9_Cis, NACols)
+
+P9_Cis <- cpMakeMeta("P1", list(c( "500", "2000", "5000", "10000", "20000", "40000", "80000"), c( "500", "2000", "5000", "10000", "20000", "40000", "80000"), 
+                              c("1.25", "2.5", "5", "10", "20", "40", "80"), c("1.25", "2.5", "5", "10", "20", "40", "80"),
+                              c("6.25", "12.5", "25", "50", "100", "200", "400"), c("6.25", "12.5", "25", "50", "100", "200", "400")), 
+                 c("A", "A", "E", "E","F", "F"), P9_Cis, 
+                 "WT", 7:12, 
+                 c("Cisplatin", "Cisplatin", "Dinaciclib", "Dinaciclib", "Doxorubicin", "Doxorubicin"))
+
+metCols <- colnames(P1_WT)[1:10]
+datCols <- colnames(P1_WT)[11:length(colnames(P1_WT))]
+```
+
+## Get mean/median/sd/MAD for each plate
+```{r}
+## P1 WT
+P1_WT_Med <- P1_WT[, datCols] %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(), median))
+
+P1_WT_Mad <- P1_WT[, datCols] %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(),mad))
+
+P1_WT_Med_UT <- P1_WT[P1_WT$Treatment == "untreated", datCols] %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(), median))
+
+P1_WT_Mad_UT <- P1_WT[P1_WT$Treatment == "untreated", datCols] %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(), mad))
+
+# P1 Cis
+P1_Cis_Med <- P1_Cis[, datCols] %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(), median))
+
+P1_Cis_Mad <- P1_Cis[, datCols] %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(),mad))
+
+P1_Cis_Med_UT <- P1_Cis[P1_Cis$Treatment == "untreated", datCols] %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(), median))
+
+P1_Cis_Mad_UT <- P1_Cis[P1_Cis$Treatment == "untreated", datCols] %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(), mad))
+
+## P5
+## P5 WT
+P5_WT_Med <- P5_WT[, datCols] %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(), median))
+
+P5_WT_Mad <- P5_WT[, datCols] %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(),mad))
+
+P5_WT_Med_UT <- P5_WT[P5_WT$Treatment == "untreated", datCols] %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(), median))
+
+P5_WT_Mad_UT <- P5_WT[P5_WT$Treatment == "untreated", datCols] %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(), mad))
+
+# P5 Cis
+P5_Cis_Med <- P5_Cis[, datCols] %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(), median))
+
+P5_Cis_Mad <- P5_Cis[, datCols] %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(),mad))
+
+P5_Cis_Med_UT <- P5_Cis[P5_Cis$Treatment == "untreated", datCols] %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(), median))
+
+P5_Cis_Mad_UT <- P5_Cis[P5_Cis$Treatment == "untreated", datCols] %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(), mad))
+
+```
+
+## Aggregate data
 
 ```{r pressure, echo=FALSE}
-plot(pressure)
+
+
+
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
