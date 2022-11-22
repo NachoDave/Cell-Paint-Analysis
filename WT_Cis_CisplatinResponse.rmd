@@ -66,7 +66,7 @@ P1_Cis <- cpMakeMeta("P1", list(c( "500", "2000", "5000", "10000", "20000", "400
                               c("1.25", "2.5", "5", "10", "20", "40", "80"), c("1.25", "2.5", "5", "10", "20", "40", "80"),
                               c("6.25", "12.5", "25", "50", "100", "200", "400"), c("6.25", "12.5", "25", "50", "100", "200", "400")), 
                  c("A", "A", "E", "E","F", "F"), P1_Cis, 
-                 "WT", 7:12, 
+                 "Cis", 7:12, 
                  c("Cisplatin", "Cisplatin", "Dinaciclib", "Dinaciclib", "Doxorubicin", "Doxorubicin"))
 
 # Plate 5 WT
@@ -94,7 +94,7 @@ P5_Cis <- cpMakeMeta("P1", list(c( "500", "2000", "5000", "10000", "20000", "400
                               c("1.25", "2.5", "5", "10", "20", "40", "80"), c("1.25", "2.5", "5", "10", "20", "40", "80"),
                               c("6.25", "12.5", "25", "50", "100", "200", "400"), c("6.25", "12.5", "25", "50", "100", "200", "400")), 
                  c("A", "A", "E", "E","F", "F"), P5_Cis, 
-                 "WT", 1:6, 
+                 "Cis", 1:6, 
                  c("Cisplatin", "Cisplatin", "Dinaciclib", "Dinaciclib", "Doxorubicin", "Doxorubicin"))
 
 # # Plate 6 WT
@@ -130,11 +130,11 @@ P9_Cis <- cpMakeMeta("P1", list(c( "500", "2000", "5000", "10000", "20000", "400
                               c("1.25", "2.5", "5", "10", "20", "40", "80"), c("1.25", "2.5", "5", "10", "20", "40", "80"),
                               c("6.25", "12.5", "25", "50", "100", "200", "400"), c("6.25", "12.5", "25", "50", "100", "200", "400")), 
                  c("A", "A", "E", "E","F", "F"), P9_Cis, 
-                 "WT", 7:12, 
+                 "Cis", 7:12, 
                  c("Cisplatin", "Cisplatin", "Dinaciclib", "Dinaciclib", "Doxorubicin", "Doxorubicin"))
 
-metCols <- colnames(P1_WT)[1:10]
-datCols <- colnames(P1_WT)[11:length(colnames(P1_WT))]
+metCols <- colnames(P1_WT)[1:11]
+datCols <- colnames(P1_WT)[12:length(colnames(P1_WT))]
 ```
 
 ## Get mean/median/sd/MAD for each plate
@@ -210,10 +210,320 @@ P5_Cis_Mad_UT <- P5_Cis[P5_Cis$Treatment == "untreated", datCols] %>%
 
 ```
 
+## Compare nuclear parameters WT vs Cisplatin
+```{r}
+
+P1_Untreated <- rbind(P1_WT[P1_WT$Treatment == "untreated",], P1_Cis[P1_Cis$Treatment == "untreated",])
+P1 <- rbind(P1_WT, P1_Cis)
+
+### Compactness
+
+WT_AreaShape_CompactnessUT <- plotMorphParamaterDist(P1_Untreated, 
+                                                      "AreaShape_Compactness", 
+                                                      c("nuc"), ttl = "Compactness Untreated P1", groupby = c("cell_line", "Metadata_Well_nuc"))
+
+WT_AreaShape_CompactnessUT[[1]]
+
+
+
+WT_AreaShape_Compactness <- plotMorphParamaterDist(P1, 
+                                                      "AreaShape_Compactness", 
+                                                      c("nuc"), ttl = "Compactness Untreated P1", groupby = c("cell_line", "Metadata_Well_nuc"))
+
+WT_AreaShape_Compactness[[1]]
+
+### Form factor
+
+WT_AreaShape_FormFactorUT <- plotMorphParamaterDist(P1_Untreated, 
+                                                      "AreaShape_FormFactor", 
+                                                      c("nuc"), ttl = "Form factor untreated P1", groupby = c("cell_line", "Metadata_Well_nuc"))
+
+WT_AreaShape_FormFactorUT[[1]]
+
+WT_AreaShape_FormFactor <- plotMorphParamaterDist(P1, 
+                                                      "AreaShape_FormFactor", 
+                                                      c("nuc"), ttl = "Form Factor P1", groupby = c("cell_line", "Treatment", "Dose"))
+
+WT_AreaShape_FormFactor[[1]]
+
+## Diameter
+WT_AreaShape_EquivalentDiameterUT <- plotMorphParamaterDist(P1_Untreated, 
+                                                      "AreaShape_EquivalentDiameter", 
+                                                      c("nuc"), ttl = "Equivalent diameter Untreated P1", groupby = c("cell_line", "Metadata_Well_nuc"))
+
+WT_AreaShape_EquivalentDiameterUT[[1]]
+
+## Major axis length
+WT_AreaShape_MajorAxisLengthUT <- plotMorphParamaterDist(P1_Untreated, 
+                                                      "AreaShape_MajorAxisLength", 
+                                                      c("nuc"), ttl = "MajorAxisLength Untreated P1", groupby = c("cell_line", "Metadata_Well_nuc"))
+
+WT_AreaShape_EquivalentDiameterUT[[1]]
+
+```
+## Cis nuclei
+```{r}
+library(randomForest)
+
+cellClassdf <- data.frame(id = c(1, 2, 4, 5, 6, 7, 8, 9),
+                  #classNuc = c("Smooth", "Kidney", "Irreg", "Triple", "Breaking", "Giant", "Elong", "Double"))
+                  #classNuc = c("SmoothElong", "KidneyDouble", "IrregBreak", "Triple", "IrregBreak", "Giant", "SmoothElong", "KidneyDouble"))
+                  classNuc = c("SmoothElongKidney", "SmoothElongKidney", "IrregBreak", "Triple", "IrregBreak", "Giant", "SmoothElongKidney", "Double"))
+
+cisNucTrain <- read.csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellNucleiType.csv", header = T)
+
+cisNucTrainCnt <- cisNucTrain %>% dplyr::count(Nuclei.Type)
+cisNucTrain$RowColFldCell <- paste(cisNucTrain$row, cisNucTrain$column, cisNucTrain$field, cisNucTrain$Cell.Number, sep = "_")
+
+P1_RF_TrainParam <- colnames(P1_WT)[grepl("AreaShape.*nuc", colnames(P1_WT))]
+P1_RF_TrainParam <- P1_RF_TrainParam[!grepl("Moment|Zernike", P1_RF_TrainParam)]
+#P1_RF_TrainParam <- P1_RF_TrainParam[!grepl("Moment", P1_RF_TrainParam)]
+
+P1_Cis_AreaShapeRF <- P1_Cis[P1_Cis$Treatment == "untreated", c(metCols,P1_RF_TrainParam)]
+P1_Cis_AreaShapeRF$RowColFldCell <- paste(P1_Cis_AreaShapeRF$Metadata_Row_nuc, P1_Cis_AreaShapeRF$Metadata_Column_nuc, 
+                                          P1_Cis_AreaShapeRF$Metadata_Site_nuc, P1_Cis_AreaShapeRF$ObjectNumber_nuc, sep = "_")
+
+P1_Cis_NucTraining <- dplyr::inner_join(P1_Cis_AreaShapeRF, cisNucTrain, by = "RowColFldCell")
+
+P1_Cis_NucTraining <- dplyr::left_join(P1_Cis_NucTraining, cellClassdf, by = c("Nuclei.Type" = "id"))
+P1_Cis_NucTraining$classNuc <- factor(P1_Cis_NucTraining$classNuc, levels = unique(P1_Cis_NucTraining$classNuc))
+
+## RF training
+## Split data
+set.seed(222)
+ind <- sample(2, nrow(P1_Cis_NucTraining), replace = TRUE, prob = c(0.7, 0.3))
+P1_CisNuc_train <- P1_Cis_NucTraining[ind==1,]
+P1_CisNuc_test <- P1_Cis_NucTraining[ind==2,]
+
+P1_CisNuc_rf <- randomForest(classNuc~., data=P1_CisNuc_train[,c(P1_RF_TrainParam, "classNuc")], proximity=TRUE) 
+
+P1_CisNuc_rf_PredTrain <- predict(P1_CisNuc_rf, P1_CisNuc_train[, c(P1_RF_TrainParam, "classNuc")])
+P1_CisNuc_rf_Pred <- predict(P1_CisNuc_rf, P1_CisNuc_test[, c(P1_RF_TrainParam, "classNuc")])
+
+confusionMatrix(P1_CisNuc_rf_Pred, P1_CisNuc_test[, c(P1_RF_TrainParam, "classNuc")]$ classNuc)
+
+
+## Test on WT
+P1_WT_RF_Test <- P1_WT[P1_WT$Treatment == "untreated", c(metCols,P1_RF_TrainParam)]
+P1_WT_RF_Predict <- predict(P1_CisNuc_rf, P1_WT_RF_Test[, c(P1_RF_TrainParam)])
+```
+
+## Self organizing map
+```{r}
+library(kohonen)
+## SOM with raw normalized data ===================================================================================================================================================== ##
+
+P1_RF_TrainParam_NoSize <- P1_RF_TrainParam[!grepl("Area_|Radius|Perimeter|ConvexArea|Diameter|Length", P1_RF_TrainParam)]
+
+scaleMedMad <- function(x){(x - median(x))/mad(x)}
+P1_Cis_NucTrainingNrm <- P1_Cis_NucTraining %>% mutate_at(P1_RF_TrainParam, scaleMedMad)
+
+P1_Cis_NucTrainingNrmNoSz <- P1_Cis_NucTraining %>% mutate_at(P1_RF_TrainParam_NoSize, scaleMedMad)
+
+## Do the som stuff
+set.seed(222)
+g <- somgrid(xdim = 3, ydim = 3, topo = "rectangular")
+P1_CisNucMap <- som(as.matrix(P1_Cis_NucTrainingNrm[, P1_RF_TrainParam]), grid = g)
+
+plot(P1_CisNucMap, type='codes', palette.name = rainbow)
+plot(P1_CisNucMap, type = "mapping")
+
+## Do SOM stuff no size constraints
+set.seed(222)
+P1_CisNucMapNoSz <- som(as.matrix(P1_Cis_NucTrainingNrm[, P1_RF_TrainParam_NoSize]), grid = g)
+
+plot(P1_CisNucMapNoSz, type='codes', palette.name = rainbow)
+plot(P1_CisNucMapNoSz, type = "mapping")
+
+
+
+## SOM with best normal ===================================================================================================================================================== ##
+
+
+# P1_Cis_NucTrainingNrm <- P1_Cis_NucTraining
+# P1_Cis_NucTrainingNrm[P1_RF_TrainParam] <- dplyr:mutate(P1_Cis_NucTrainingNrm, )
+  
+  #
+
+```
+## Plot nuclei from SOM 
+```{r, warning=FALSE}
+
+library(imager)
+
+cisNucSOM_Res <- cbind(P1_Cis_NucTrainingNrm[, metCols[1:9]], P1_CisNucMap$unit.classif)
+cisNucSOM_Res <- dplyr::inner_join(cisNucSOM_Res, P1_Cis_NucLocs, by = c("Filename" = "FileName_DNA", "ObjectNumber_nuc" = "ObjectNumber_nuc"))
+
+# cisNucSOM_ResNoSz <- cbind(P1_Cis_NucTrainingNrmNoSz[, metCols[1:9]], P1_CisNucMapNoSz$unit.classif)
+# cisNucSOM_ResNoSz <- dplyr::inner_join(cisNucSOM_ResNoSz, P1_Cis_NucLocs, by = c("Filename" = "FileName_DNA", "ObjectNumber_nuc" = "ObjectNumber_nuc"))
+
+nucPlot <- function(data, imDr, outDr, prefix = "", fn = "Filename", clses = "P1_CisNucMap$unit.classif", 
+                    xLoc = "Location_Center_X_nuc", yLoc = "Location_Center_Y_nuc", imSufix = "_Cis.jpeg", objectNoDx = "ObjectNumber_nuc"){
+  #browser()
+  # Make image directories
+  for (ix in unique(data[, clses])){
+    
+   dir.create(paste0(outDr, prefix, "_", ix))
+    
+  }
+  # Make image patches
+  for (dx in 1:nrow(data)){
+    #browser()
+    I <- load.image(file.path( imDr, gsub(".tif", imSufix,data$Filename[dx])))
+ ## Nuclei images
+    I1 <- imsub(I, x > round(max(1, data[dx,xLoc])) - 30 &
+               x < round(min(1024, data[dx,xLoc])) + 30,
+                y > round(max(1, data[dx,yLoc])) - 30 &
+               y < round(min(1024, data[dx,yLoc])) + 30
+               )
+    #browser()
+    save.image(I1, paste0(outDr, "/", prefix, "_", data[dx, clses],  
+                         "/", gsub(".tif", paste0("NucDx_",
+      data[dx, objectNoDx],  imSufix
+    ),data$Filename[dx])
+    ))
+    
+  ## Cell images
+      I2 <- imsub(I, x > round(max(1025, 1024 + data[dx,xLoc])) - 50 &
+               x < round(min(2*1024, 1024+data[dx,xLoc])) + 50,
+                y > round(max(1, data[dx,yLoc])) - 50 &
+               y < round(min(1024, data[dx,yLoc])) + 50
+               )
+      
+         save.image(I2, paste0(outDr, "/", prefix, "_", data[dx, clses],  
+                         "/", gsub(".tif", paste0("Cell_NucDx_",
+      data[dx, objectNoDx],  imSufix
+    ),data$Filename[dx])
+    ))
+    
+    
+  }
+  
+}
+
+
+## plot with size
+# nucPlot(cisNucSOM_Res, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/RBGO_Storage/ResultsCisP01to04_09to12/P1/P1_SegmentationImages/",
+#         outDr = "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions/SOM_InitialTest_CisUntreatedNucShape_NoMomNoZern/////", prefix = "CisUT_SOMTest")
+  
+# nucPlot(cisNucSOM_ResNoSz, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/RBGO_Storage/ResultsCisP01to04_09to12/P1/P1_SegmentationImages/",
+#         outDr = "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions/SOM_InitialTest_CisUntreatedNucShape_NoSz///", prefix = "CisUT_SOMTestNoSz", 
+#         clses = "P1_CisNucMapNoSz$unit.classif")
+```
+
+## SOM on random Cisplatin nuclei and 
+
+## Check to seperate multi nuc vs normal
+```{r}
+## Get the cisplatin 1000 randomly selected cells
+set.seed(100)
+
+n = 10000
+
+P1_Cis_UT <- P1_Cis[P1_Cis$Treatment == "untreated",]
+
+P1_is_UT_RndShape <- P1_Cis_UT[sample(nrow(P1_Cis_UT ),n), c(metCols, P1_RF_TrainParam)]
+P1_is_UT_RndShapeNrm <- P1_is_UT_RndShape %>% mutate_at(P1_RF_TrainParam, scaleMedMad)
+
+## SOM 
+# g <- somgrid(xdim = 3, ydim = 3, topo = "rectangular")
+# P1_is_UT_RndShapeNrmSOM <- som(as.matrix(P1_is_UT_RndShapeNrm[, P1_RF_TrainParam]), grid = g)
+# 
+# plot(P1_is_UT_RndShapeSOM, type='codes', palette.name = rainbow)
+# plot(P1_is_UT_RndShapeSOM, type = "mapping")
+# 
+# ## Write cis SOM results to file
+# 
+# P1_is_UT_RndShapeSOM_Res <- cbind(P1_is_UT_RndShapeNrm[, metCols[1:9]], P1_is_UT_RndShapeSOM$unit.classif)
+# P1_is_UT_RndShapeSOM_Res <- dplyr::inner_join(P1_is_UT_RndShapeSOM_Res, P1_Cis_NucLocs, by = c("Filename" = "FileName_DNA", "ObjectNumber_nuc" = "ObjectNumber_nuc"))
+# 
+# nucPlot(P1_is_UT_RndShapeSOM_Res, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/RBGO_Storage/ResultsCisP01to04_09to12/P1/P1_SegmentationImages/",
+#         outDr = "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions/CisRandomSelectionUntreated/", prefix = "CisUT_SOM_RandSelection", clses = "P1_is_UT_RndShapeSOM$unit.classif")
+
+
+
+## Get the WT n randonly selected cells =========================================================================================================================================================== ###
+set.seed(100)
+P1_WT_UT <- P1_WT[P1_WT$Treatment == "untreated",]
+
+P1_WT_UT_RndShape <- P1_WT_UT[sample(nrow(P1_WT_UT ),n), c(metCols, P1_RF_TrainParam)]
+P1_WT_UT_RndShapeNrm <- P1_WT_UT_RndShape %>% mutate_at(P1_RF_TrainParam, scaleMedMad)
+
+## SOM 
+# g <- somgrid(xdim = 3, ydim = 3, topo = "rectangular")
+# P1_WT_UT_RndShapeNrmSOM <- som(as.matrix(P1_WT_UT_RndShapeNrm[, P1_RF_TrainParam[!P1_RF_TrainParam == "AreaShape_MedianRadius_nuc"]]), grid = g) # the mad of the median nuclei radius is 0, therefore leave it out for now
+# 
+# plot(P1_WT_UT_RndShapeNrmSOM, type='codes', palette.name = rainbow)
+# plot(P1_WT_UT_RndShapeNrmSOM, type = "mapping")
+# 
+# ## Write WT SOM results to file
+# 
+# P1_WT_UT_RndShapeNrmSOM_Res <- cbind(P1_WT_UT_RndShapeNrm[, metCols[1:9]], P1_WT_UT_RndShapeNrmSOM$unit.classif)
+# P1_WT_UT_RndShapeNrmSOM_Res <- dplyr::inner_join(P1_WT_UT_RndShapeNrmSOM_Res, P1_WT_NucLocs, by = c("Filename" = "FileName_DNA", "ObjectNumber_nuc" = "ObjectNumber_nuc"))
+# 
+# nucPlot(P1_WT_UT_RndShapeNrmSOM_Res, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/P1/P1_SegmentationImages/",
+#         outDr = "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions/WTRandomSelectionUntreated//", prefix = "WTUT_SOM_RandSelection", clses = "P1_WT_UT_RndShapeNrmSOM$unit.classif", 
+#         imSufix = "_WT.jpeg")
+
+## Both WT and cis ============================================================================================================================================================================== #
+
+P1_WT_Cis_UT_RndShape <- rbind(P1_WT_UT_RndShape, P1_is_UT_RndShape)
+P1_WT_Cis_UT_RndShapeNrm <- P1_WT_Cis_UT_RndShape %>% mutate_at(P1_RF_TrainParam, scaleMedMad)
+
+g <- somgrid(xdim = 3, ydim = 3, topo = "rectangular")
+P1_WT_Cis_UT_RndShapeNrmSOM <- som(as.matrix(P1_WT_Cis_UT_RndShapeNrm [, P1_RF_TrainParam[!P1_RF_TrainParam == "AreaShape_MedianRadius_nuc"]]), grid = g) # the mad of the median nuclei radius is 0, therefore leave it out for now
+
+plot(P1_WT_Cis_UT_RndShapeNrmSOM, type='codes', palette.name = rainbow)
+plot(P1_WT_Cis_UT_RndShapeNrmSOM, type = "mapping")
+
+P1_WT_Cis_UT_RndShapeNrmSOM_Res <- cbind(P1_WT_Cis_UT_RndShapeNrm[, metCols[1:9]], P1_WT_Cis_UT_RndShapeNrmSOM$unit.classif)
+P1_WT_Cis_UT_RndShapeNrmSOM_ResWT <- P1_WT_Cis_UT_RndShapeNrmSOM_Res[P1_WT_Cis_UT_RndShapeNrmSOM_Res$cell_line == "WT", ]
+P1_WT_Cis_UT_RndShapeNrmSOM_ResWT <- dplyr::inner_join(P1_WT_Cis_UT_RndShapeNrmSOM_ResWT, P1_WT_NucLocs, by = c("Filename" = "FileName_DNA", "ObjectNumber_nuc" = "ObjectNumber_nuc"))
+
+P1_WT_Cis_UT_RndShapeNrmSOM_ResCis <- P1_WT_Cis_UT_RndShapeNrmSOM_Res[P1_WT_Cis_UT_RndShapeNrmSOM_Res$cell_line == "Cis", ]
+P1_WT_Cis_UT_RndShapeNrmSOM_ResCis <- dplyr::inner_join(P1_WT_Cis_UT_RndShapeNrmSOM_ResCis  , P1_Cis_NucLocs, by = c("Filename" = "FileName_DNA", "ObjectNumber_nuc" = "ObjectNumber_nuc"))
+
+# nucPlot(P1_WT_Cis_UT_RndShapeNrmSOM_ResWT, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/P1/P1_SegmentationImages/",
+#         outDr = "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions/WTCisRandomSelectionUntreated///", prefix = "WTCisUT_SOM_RandSelection", clses = "P1_WT_Cis_UT_RndShapeNrmSOM$unit.classif", 
+#         imSufix = "_WT.jpeg")
+# 
+# nucPlot(P1_WT_Cis_UT_RndShapeNrmSOM_ResCis, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/RBGO_Storage/ResultsCisP01to04_09to12/P1/P1_SegmentationImages/",
+#         outDr = "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions/WTCisRandomSelectionUntreated///", prefix = "WTCisUT_SOM_RandSelection", clses = "P1_WT_Cis_UT_RndShapeNrmSOM$unit.classif", 
+#         imSufix = "_Cis.jpeg")
+
+```
+## PCA
+```{r}
+
+pcaWTCisNucShape <- prcomp(P1_WT_Cis_UT_RndShapeNrm [, P1_RF_TrainParam[!P1_RF_TrainParam == "AreaShape_MedianRadius_nuc"]])
+
+pcaWTCisNucShape$cell_line <- P1_WT_Cis_UT_RndShapeNrm$cell_line
+
+ggplot(cbind(data.frame(pcaWTCisNucShape$x), P1_WT_Cis_UT_RndShapeNrm$cell_line), aes(x = PC1, y = PC2, color = `P1_WT_Cis_UT_RndShapeNrm$cell_line`)) + 
+  geom_point(size = 0.02)
+
+```
+
+
+## Nuclei populations in Cisplatin treated cells
+```{r}
+
+P1_WT_Cis_UT_RndShapeNrmSOM_ResCount <- P1_WT_Cis_UT_RndShapeNrmSOM_Res %>% group_by(cell_line) %>% count(`P1_WT_Cis_UT_RndShapeNrmSOM$unit.classif`)
+
+ggplot(P1_WT_Cis_UT_RndShapeNrmSOM_ResCount, aes(x = `P1_WT_Cis_UT_RndShapeNrmSOM$unit.classif`, 
+                                                 y = n, fill = cell_line) ) +
+  geom_col(position = 'dodge') + scale_x_continuous(breaks = 1:10)
+
+```
+
 ## Aggregate data
 
 ```{r pressure, echo=FALSE}
+P1_WT_Cis_UT_RndShapeNrmSOM_ResCount <- P1_WT_Cis_UT_RndShapeNrmSOM_Res %>% group_by(cell_line) %>% count(`P1_WT_Cis_UT_RndShapeNrmSOM$unit.classif`)
 
+ggplot(P1_WT_Cis_UT_RndShapeNrmSOM_ResCount, aes(x = `P1_WT_Cis_UT_RndShapeNrmSOM$unit.classif`, 
+                                                 y = n, fill = cell_line) ) +
+  geom_col(position = 'dodge') + scale_x_continuous(breaks = 1:10)
 
 
 ```

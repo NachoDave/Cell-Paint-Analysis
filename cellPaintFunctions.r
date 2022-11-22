@@ -36,12 +36,18 @@ load_CP_csv <- function(pth, prefix = "", nucSuf = "Nuclei", cellSuf = "Cell", c
 
 
 ## Change the metadata
-cpMakeMeta <- function(plate, doses, utRow, df, cellline, cols, treatment, metaColN = 28, suffix = "_nuc"){
+cpMakeMeta <- function(plate, doses, utRow, df, cellline, cols, treatment, metaColN = 20, suffix = "_nuc", reverse = T){
   
+  if (reverse){
+    
+    doses <- rev(doses)
+    
+  }
   #browser()
   metaDat <- data.frame(ImageNumber = df$ImageNumber, Filename = df$FileName_DNA, ObjectNumber = df[paste0("ObjectNumber", suffix)],
                         Metadata_Well = df[paste0("Metadata_Well", suffix)], Metadata_Row = df[paste0("Metadata_Row", suffix)],
                         Metadata_Column = df[paste0("Metadata_Column", suffix)],
+                        Metadata_Field_nuc = df[paste0("Metadata_Site", suffix)],
                          plate = plate, cell_line = cellline)
   
   metaDat$Treatment <- "X"
@@ -223,7 +229,8 @@ plotMorphParamaterDist <- function(dt, param, regions, channels = "AreaShapeFeat
       tP <- paste(param, cdx, rdx, sep = "_")
       }
       
-      GroupCols <- dt[, paste("Metadata", groupby, sep = "_")]
+      #GroupCols <- dt[, paste("Metadata", groupby, sep = "_")]
+      GroupCols <- dt[, groupby]
       Group <- sapply(1:nrow(GroupCols), function(x) paste(GroupCols[x, ], collapse =   " "))
       
       tDat <- data.frame(Param = dt[, tP], x = GroupCols[,1], Location = Group) 
