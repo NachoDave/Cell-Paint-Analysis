@@ -1,0 +1,96 @@
+---
+title: "BasicCellPaintAnalysis"
+author: "David James"
+date: "22/11/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(data.table)
+library(ggplot2)
+library(reshape2)
+library(caret)
+source("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/RScripts_011122/cellPaintFunctions.r")
+```
+
+## Features to remove
+```{r}
+# Features to remove (because of NA columns or location parameters)
+NACols <- c("AreaShape_NormalizedMoment_0_0_nuc", "AreaShape_NormalizedMoment_0_1_nuc",  "AreaShape_NormalizedMoment_1_0_nuc",  "AreaShape_NormalizedMoment_0_0_cell",
+ "AreaShape_NormalizedMoment_0_1_cell", "AreaShape_NormalizedMoment_1_0_cell", "AreaShape_NormalizedMoment_0_0_cyto", "AreaShape_NormalizedMoment_0_1_cyto",
+"AreaShape_NormalizedMoment_1_0_cyto",
+"Location",
+"Orientation",
+"AreaShape_Center_.",
+"AreaShape_BoundingBoxMaximum_",
+"AreaShape_BoundingBoxMinimum_",
+"AreaShape_EulerNumber_",
+#"FileName",
+'Number_Object_Number_nuc', 
+'PathName', 
+'Parent'
+  )
+```
+
+## Load data for each plate
+```{r, echo=FALSE}
+# Plate 1 - Cisplatin 1-2 (7-8), Dinaciclib 3-4 (9-10), Doxorubicin 5-6 (11-12) WT left, Cis Right
+P1_WT <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/headlessTest/P1/P1_Results/", 
+                     prefix = "WT_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
+
+# Plate 2  - Flavopiradol 1-2 (7-8), Panobinostat 3-4 (9-10), SAHA 5-6 (11-12) WT left, Cis Right
+
+# Plate 3 - GSK343 1-2 (7-8), GSK467 3-4 (9-10), GSK503 5-6 (11-12) WT left, Cis Right
+
+# Plate 4 - GSK-J4 1-2 (7-8), iBET 151 3-4 (9-10), GSK 503 5-6 (11-12) WT left, Cis Right
+
+# Plate 5  - Cisplatin 1-2 (7-8), Dinaciclib 3-4 (9-10), Doxorubicin 5-6 (11-12) WT Right, Cis Left
+
+# Plate 6 - Flavopiradol 1-2 (7-8), Panobinostat 3-4 (9-10), SAHA 5-6 (11-12) WT Right, Cis Left
+
+# Plate 7 - GSK343 1-2 (7-8), GSK467 3-4 (9-10), GSK503 5-6 (11-12) WT right, Cis left
+
+# Plate 8 - GSK-J4 1-2 (7-8), iBET 151 3-4 (9-10), GSK 503 5-6 (11-12) WT right, Cis left
+
+# Plate 9  - Cisplatin 1-2 (7-8), Dinaciclib 3-4 (9-10), Doxorubicin 5-6 (11-12) WT left, Cis Right
+
+# Plate 10 - Flavopiradol 1-2 (7-8), Panobinostat 3-4 (9-10), SAHA 5-6 (11-12) WT left, Cis Right
+
+# Plate 11  - GSK343 1-2 (7-8), GSK467 3-4 (9-10), GSK503 5-6 (11-12) WT left, Cis Right
+
+# Plate 12  - GSK-J4 1-2 (7-8), iBET 151 3-4 (9-10), GSK 503 5-6 (11-12) WT left, Cis Right
+
+
+```
+
+## Put meta data in and remove features
+
+```{r, echo=FALSE}
+# Plate 1 - Cisplatin 1-2 (7-8), Dinaciclib 3-4 (9-10), Doxorubicin 5-6 (11-12) WT left, Cis Right
+
+# Plate 2  - Flavopiradol 1-2 (7-8), Panobinostat 3-4 (9-10), SAHA 5-6 (11-12) WT left, Cis Right
+
+# Plate 3 - GSK343 1-2 (7-8), GSK467 3-4 (9-10), GSK503 5-6 (11-12) WT left, Cis Right
+
+# Plate 4 - GSK-J4 1-2 (7-8), iBET 151 3-4 (9-10), GSK 503 5-6 (11-12) WT left, Cis Right
+
+# Plate 5  - Cisplatin 1-2 (7-8), Dinaciclib 3-4 (9-10), Doxorubicin 5-6 (11-12) WT Right, Cis Left
+
+# Plate 6 - Flavopiradol 1-2 (7-8), Panobinostat 3-4 (9-10), SAHA 5-6 (11-12) WT Right, Cis Left
+
+# Plate 7 - GSK343 1-2 (7-8), GSK467 3-4 (9-10), GSK503 5-6 (11-12) WT right, Cis left
+
+# Plate 8 - GSK-J4 1-2 (7-8), iBET 151 3-4 (9-10), GSK 503 5-6 (11-12) WT right, Cis left
+
+# Plate 9  - Cisplatin 1-2 (7-8), Dinaciclib 3-4 (9-10), Doxorubicin 5-6 (11-12) WT left, Cis Right
+
+# Plate 10 - Flavopiradol 1-2 (7-8), Panobinostat 3-4 (9-10), SAHA 5-6 (11-12) WT left, Cis Right
+
+# Plate 11  - GSK343 1-2 (7-8), GSK467 3-4 (9-10), GSK503 5-6 (11-12) WT left, Cis Right
+
+# Plate 12  - GSK-J4 1-2 (7-8), iBET 151 3-4 (9-10), GSK 503 5-6 (11-12) WT left, Cis Right
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
