@@ -36,61 +36,224 @@ NACols <- c("AreaShape_NormalizedMoment_0_0_nuc", "AreaShape_NormalizedMoment_0_
 
 ## Load data for each plate
 ```{r, echo=FALSE}
-# Plate 1 - Cisplatin 1-2 (7-8), Dinaciclib 3-4 (9-10), Doxorubicin 5-6 (11-12) WT left, Cis Right
+# Plate 1 - Cisplatin 1-2 (7-8), Dinaciclib 3-4 (9-10), Doxorubicin 5-6 (11-12) WT left, Cis Right ============================================================================================== ##
 P1_WT <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/headlessTest/P1/P1_Results/", 
                      prefix = "WT_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
 
-# Plate 2  - Flavopiradol 1-2 (7-8), Panobinostat 3-4 (9-10), SAHA 5-6 (11-12) WT left, Cis Right
+# Plate 2  - Flavopiradol 1-2 (7-8), Panobinostat 3-4 (9-10), SAHA 5-6 (11-12) WT left, Cis Right ============================================================================================== ##
+P2_WT <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/headlessTest/P2/P2_Results/", 
+                     prefix = "WT_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
 
 # Plate 3 - GSK343 1-2 (7-8), GSK467 3-4 (9-10), GSK503 5-6 (11-12) WT left, Cis Right
+P3_WT <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/headlessTest/P3/P3_Results/", 
+                     prefix = "WT_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
 
-# Plate 4 - GSK-J4 1-2 (7-8), iBET 151 3-4 (9-10), GSK 503 5-6 (11-12) WT left, Cis Right
+# Plate 4 - GSK-J4 1-2 (7-8), iBET 151 3-4 (9-10), GSK 503 5-6 (11-12) WT left, Cis Right ============================================================================================== ##
+P4_WT <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/headlessTest/P4/P4_Results/", 
+                     prefix = "WT_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
 
-# Plate 5  - Cisplatin 1-2 (7-8), Dinaciclib 3-4 (9-10), Doxorubicin 5-6 (11-12) WT Right, Cis Left
 
-# Plate 6 - Flavopiradol 1-2 (7-8), Panobinostat 3-4 (9-10), SAHA 5-6 (11-12) WT Right, Cis Left
+# Plate 5  - Cisplatin 1-2 (7-8), Dinaciclib 3-4 (9-10), Doxorubicin 5-6 (11-12) WT Right, Cis Left ============================================================================================== ##
+P5_WT <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/P5/P5_Results/", 
+                     prefix = "WT_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
 
-# Plate 7 - GSK343 1-2 (7-8), GSK467 3-4 (9-10), GSK503 5-6 (11-12) WT right, Cis left
+# Plate 6 - Flavopiradol 1-2 (7-8), Panobinostat 3-4 (9-10), SAHA 5-6 (11-12) WT Right, Cis Left ============================================================================================== ##
+P6_WT <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/P6/P6_Results/", 
+                     prefix = "WT_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
 
-# Plate 8 - GSK-J4 1-2 (7-8), iBET 151 3-4 (9-10), GSK 503 5-6 (11-12) WT right, Cis left
+# Plate 7 - GSK343 1-2 (7-8), GSK467 3-4 (9-10), GSK503 5-6 (11-12) WT right, Cis left ============================================================================================== ##
+P7_WT <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/P7/P7_Results/", 
+                     prefix = "WT_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
 
-# Plate 9  - Cisplatin 1-2 (7-8), Dinaciclib 3-4 (9-10), Doxorubicin 5-6 (11-12) WT left, Cis Right
+# Plate 8 - GSK-J4 1-2 (7-8), iBET 151 3-4 (9-10), GSK 503 5-6 (11-12) WT right, Cis left ============================================================================================== ##
+P8_WT <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/P8/P8_Results/", 
+                     prefix = "WT_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
 
-# Plate 10 - Flavopiradol 1-2 (7-8), Panobinostat 3-4 (9-10), SAHA 5-6 (11-12) WT left, Cis Right
+# Plate 9  - Cisplatin 1-2 (7-8), Dinaciclib 3-4 (9-10), Doxorubicin 5-6 (11-12) WT left, Cis Right ============================================================================================== ##
+P9_WT <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/headlessTest/P9/P9_Results/", 
+                     prefix = "WT_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
 
-# Plate 11  - GSK343 1-2 (7-8), GSK467 3-4 (9-10), GSK503 5-6 (11-12) WT left, Cis Right
+# Plate 10 - Flavopiradol 1-2 (7-8), Panobinostat 3-4 (9-10), SAHA 5-6 (11-12) WT left, Cis Right ============================================================================================== ##
+P10_WT <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/headlessTest/P10/P10_Results/", 
+                     prefix = "WT_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
 
-# Plate 12  - GSK-J4 1-2 (7-8), iBET 151 3-4 (9-10), GSK 503 5-6 (11-12) WT left, Cis Right
+# Plate 11  - GSK343 1-2 (7-8), GSK467 3-4 (9-10), GSK503 5-6 (11-12) WT left, Cis Right ============================================================================================== ##
+P11_WT <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/headlessTest/P11/P11_Results/", 
+                     prefix = "WT_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
 
+# Plate 12  - GSK-J4 1-2 (7-8), iBET 151 3-4 (9-10), GSK 503 5-6 (11-12) WT left, Cis Right ============================================================================================== ##
+P12_WT <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/headlessTest/P12/P12_Results/", 
+                     prefix = "WT_", nucSuf = "FilteredNuclei", cellSuf = "Cell", cytoSuf = "Cytoplasm")
 
 ```
 
 ## Put meta data in and remove features
 
 ```{r, echo=FALSE}
-# Plate 1 - Cisplatin 1-2 (7-8), Dinaciclib 3-4 (9-10), Doxorubicin 5-6 (11-12) WT left, Cis Right
 
-# Plate 2  - Flavopiradol 1-2 (7-8), Panobinostat 3-4 (9-10), SAHA 5-6 (11-12) WT left, Cis Right
+## Doses for each treatment
+# P1, 5, 9
+cisDose <- c( "500", "2000", "5000", "10000", "20000", "40000", "80000")
+dinaDose <- c("1.25", "2.5", "5", "10", "20", "40", "80")
+doxoDose <- c("6.25", "12.5", "25", "50", "100", "200", "400")
 
-# Plate 3 - GSK343 1-2 (7-8), GSK467 3-4 (9-10), GSK503 5-6 (11-12) WT left, Cis Right
+# P2, 6, 10
+flavoDose <- c("250", "500", "1000", "2000", "4000", "8000", "16000")
+panoDose <- c("2.5", "5", "10", "20", "40", "80", "160")
+sahaDose <- c("625", "1250", "2500", "5000", "10000", "20000", "40000")
 
-# Plate 4 - GSK-J4 1-2 (7-8), iBET 151 3-4 (9-10), GSK 503 5-6 (11-12) WT left, Cis Right
+# P3, 7, 11
+gsk343Dose <- c("1562", "3125", "6250", "12500", "25000", "50000", "100000")
+gsk467Dose <- c("625", "1250", "5000", "10000", "20000", "40000", "80000")
+gsk503Dose <- c("1562.5", "3125", "6250", "12500", "50000", "100000")
 
-# Plate 5  - Cisplatin 1-2 (7-8), Dinaciclib 3-4 (9-10), Doxorubicin 5-6 (11-12) WT Right, Cis Left
+# P4, P8, 12
+gskJ4Dose <- c("312.5", "625", "1250", "2500", "5000", "10000", "20000")
+iBET151Dose <- c("312.5", "625", "1250", "2500", "5000", "10000", "20000")
+iBET726Dose <- c("4.12", "12.35", "37.04", "111.11", "333.33", "1000", "3000")
 
-# Plate 6 - Flavopiradol 1-2 (7-8), Panobinostat 3-4 (9-10), SAHA 5-6 (11-12) WT Right, Cis Left
+# Plate 1 - Cisplatin 1-2 (7-8), Dinaciclib 3-4 (9-10), Doxorubicin 5-6 (11-12) WT left, Cis Right ========================================================================================== ##
+P1_WT_NucLocs <- nucLoc(P1_WT)
+P1_WT <- rmColumns(P1_WT, NACols)
+P1_WT <- cpMakeMeta("P1", list(c( "500", "2000", "5000", "10000", "20000", "40000", "80000"), c( "500", "2000", "5000", "10000", "20000", "40000", "80000"), 
+                              c("1.25", "2.5", "5", "10", "20", "40", "80"), c("1.25", "2.5", "5", "10", "20", "40", "80"),
+                              c("6.25", "12.5", "25", "50", "100", "200", "400"), c("6.25", "12.5", "25", "50", "100", "200", "400")), 
+                 c("A", "A", "E", "E","F", "F"), P1_WT, 
+                 "WT", 1:6, 
+                 c("Cisplatin", "Cisplatin", "Dinaciclib", "Dinaciclib", "Doxorubicin", "Doxorubicin"))
 
-# Plate 7 - GSK343 1-2 (7-8), GSK467 3-4 (9-10), GSK503 5-6 (11-12) WT right, Cis left
 
-# Plate 8 - GSK-J4 1-2 (7-8), iBET 151 3-4 (9-10), GSK 503 5-6 (11-12) WT right, Cis left
+# Plate 2  - Flavopiradol 1-2 (7-8), Panobinostat 3-4 (9-10), SAHA 5-6 (11-12) WT left, Cis Right ========================================================================================== ##
+P2_WT_NucLocs <- nucLoc(P2_WT)
+P2_WT <- rmColumns(P2_WT, NACols)
+P2_WT <- cpMakeMeta("P2", list(flavoDose, flavoDose, panoDose, panoDose, sahaDose, sahaDose), # Doses
+                        c("A", "A", "E", "E","F", "F"), # Untreated
+                        P2_WT, # Plate Data set
+                        "WT", 1:6, # cell line, plate columns
+                        c("Flavopiradol", "Flavopiradol", "Panobinostat", "Panobinostat", "SAHA", "SAHA") # treatments
+                    )
 
-# Plate 9  - Cisplatin 1-2 (7-8), Dinaciclib 3-4 (9-10), Doxorubicin 5-6 (11-12) WT left, Cis Right
+# Plate 3 - GSK343 1-2 (7-8), GSK467 3-4 (9-10), GSK503 5-6 (11-12) WT left, Cis Right ========================================================================================== ##
+P3_WT_NucLocs <- nucLoc(P3_WT)
+P3_WT <- rmColumns(P3_WT, NACols)
+P3_WT <- cpMakeMeta("P3", list(gsk343Dose, gsk343Dose, gsk467Dose, gsk467Dose, gsk503Dose, gsk503Dose), # Doses
+                        c("A", "A", "E", "E","F", "F"), # Untreated
+                        P3_WT, # Plate Data set
+                        "WT", 1:6, # cell line, plate columns
+                        c("GSK343", "GSK343", "GSK467", "GSK467", "GSK503", "GSK503") # treatments
+                    )
 
-# Plate 10 - Flavopiradol 1-2 (7-8), Panobinostat 3-4 (9-10), SAHA 5-6 (11-12) WT left, Cis Right
+# Plate 4 - GSK-J4 1-2 (7-8), iBET 151 3-4 (9-10), GSK 503 5-6 (11-12) WT left, Cis Right ========================================================================================== ##
+P4_WT_NucLocs <- nucLoc(P4_WT)
+P4_WT <- rmColumns(P4_WT, NACols)
+P4_WT <- cpMakeMeta("P4", list(gskJ4Dose, gskJ4Dose, iBET151Dose, iBET151Dose, iBET726Dose, iBET726Dose), # Doses
+                        c("A", "A", "E", "E","F", "F"), # Untreated
+                        P4_WT, # Plate Data set
+                        "WT", 1:6, # cell line, plate columns
+                        c("GSKJ4", "GSKJ4", "iBET151", "iBET151", "iBET726", "iBET726") # treatments
+                    )
 
-# Plate 11  - GSK343 1-2 (7-8), GSK467 3-4 (9-10), GSK503 5-6 (11-12) WT left, Cis Right
+# Plate 5  - Cisplatin 1-2 (7-8), Dinaciclib 3-4 (9-10), Doxorubicin 5-6 (11-12) WT Right, Cis Left ========================================================================================== ##
+P5_WT_NucLocs <- nucLoc(P5_WT)
+P5_WT <- rmColumns(P5_WT, NACols)
 
-# Plate 12  - GSK-J4 1-2 (7-8), iBET 151 3-4 (9-10), GSK 503 5-6 (11-12) WT left, Cis Right
+P5_WT <- cpMakeMeta("P1", list(c( "500", "2000", "5000", "10000", "20000", "40000", "80000"), c( "500", "2000", "5000", "10000", "20000", "40000", "80000"), 
+                              c("1.25", "2.5", "5", "10", "20", "40", "80"), c("1.25", "2.5", "5", "10", "20", "40", "80"),
+                              c("6.25", "12.5", "25", "50", "100", "200", "400"), c("6.25", "12.5", "25", "50", "100", "200", "400")), 
+                 c("A", "A", "E", "E","F", "F"), P5_WT, 
+                 "WT", 7:12, 
+                 c("Cisplatin", "Cisplatin", "Dinaciclib", "Dinaciclib", "Doxorubicin", "Doxorubicin"))
+
+# Plate 6 - Flavopiradol 1-2 (7-8), Panobinostat 3-4 (9-10), SAHA 5-6 (11-12) WT Right, Cis Left ========================================================================================== ##
+P6_WT_NucLocs <- nucLoc(P6_WT)
+P6_WT <- rmColumns(P6_WT, NACols)
+P6_WT <- cpMakeMeta("P6", list(flavoDose, flavoDose, panoDose, panoDose, sahaDose, sahaDose), # Doses
+                        c("A", "A", "E", "E","F", "F"), # Untreated
+                        P6_WT, # Plate Data set
+                        "WT", 7:12, # cell line, plate columns
+                        c("Flavopiradol", "Flavopiradol", "Panobinostat", "Panobinostat", "SAHA", "SAHA") # treatments
+                    )
+
+# Plate 7 - GSK343 1-2 (7-8), GSK467 3-4 (9-10), GSK503 5-6 (11-12) WT right, Cis left ========================================================================================== ##
+P7_WT_NucLocs <- nucLoc(P7_WT)
+P7_WT <- rmColumns(P7_WT, NACols)
+P7_WT <- cpMakeMeta("P7", list(gsk343Dose, gsk343Dose, gsk467Dose, gsk467Dose, gsk503Dose, gsk503Dose), # Doses
+                        c("A", "A", "E", "E","F", "F"), # Untreated
+                        P7_WT, # Plate Data set
+                        "WT", 7:12, # cell line, plate columns
+                        c("GSK343", "GSK343", "GSK467", "GSK467", "GSK503", "GSK503") # treatments
+                    )
+
+# Plate 8 - GSK-J4 1-2 (7-8), iBET 151 3-4 (9-10), GSK 503 5-6 (11-12) WT right, Cis left ========================================================================================== ##
+P8_WT_NucLocs <- nucLoc(P8_WT)
+P8_WT <- rmColumns(P8_WT, NACols)
+P8_WT <- cpMakeMeta("P8", list(gskJ4Dose, gskJ4Dose, iBET151Dose, iBET151Dose, iBET726Dose, iBET726Dose), # Doses
+                        c("A", "A", "E", "E","F", "F"), # Untreated
+                        P8_WT, # Plate Data set
+                        "WT", 7:12, # cell line, plate columns
+                        c("GSKJ4", "GSKJ4", "iBET151", "iBET151", "iBET726", "iBET726") # treatments
+                    )
+
+# Plate 9  - Cisplatin 1-2 (7-8), Dinaciclib 3-4 (9-10), Doxorubicin 5-6 (11-12) WT left, Cis Right ========================================================================================== ##
+P9_WT_NucLocs <- nucLoc(P9_WT)
+P9_WT <- rmColumns(P9_WT, NACols)
+
+P9_WT <- cpMakeMeta("P1", list(c( "500", "2000", "5000", "10000", "20000", "40000", "80000"), c( "500", "2000", "5000", "10000", "20000", "40000", "80000"), 
+                              c("1.25", "2.5", "5", "10", "20", "40", "80"), c("1.25", "2.5", "5", "10", "20", "40", "80"),
+                              c("6.25", "12.5", "25", "50", "100", "200", "400"), c("6.25", "12.5", "25", "50", "100", "200", "400")), 
+                 c("A", "A", "E", "E","F", "F"), P9_WT, 
+                 "WT", 1:6, 
+                 c("Cisplatin", "Cisplatin", "Dinaciclib", "Dinaciclib", "Doxorubicin", "Doxorubicin"))
+
+# Plate 10 - Flavopiradol 1-2 (7-8), Panobinostat 3-4 (9-10), SAHA 5-6 (11-12) WT left, Cis Right ========================================================================================== ##
+P10_WT_NucLocs <- nucLoc(P10_WT)
+P10_WT <- rmColumns(P10_WT, NACols)
+P10_WT <- cpMakeMeta("P10", list(flavoDose, flavoDose, panoDose, panoDose, sahaDose, sahaDose), # Doses
+                        c("A", "A", "E", "E","F", "F"), # Untreated
+                        P10_WT, # Plate Data set
+                        "WT", 1:6, # cell line, plate columns
+                        c("Flavopiradol", "Flavopiradol", "Panobinostat", "Panobinostat", "SAHA", "SAHA") # treatments
+                    )
+
+# Plate 11  - GSK343 1-2 (7-8), GSK467 3-4 (9-10), GSK503 5-6 (11-12) WT left, Cis Right ========================================================================================== ##
+P11_WT_NucLocs <- nucLoc(P11_WT)
+P11_WT <- rmColumns(P11_WT, NACols)
+P11_WT <- cpMakeMeta("P11", list(gsk343Dose, gsk343Dose, gsk467Dose, gsk467Dose, gsk503Dose, gsk503Dose), # Doses
+                        c("A", "A", "E", "E","F", "F"), # Untreated
+                        P11_WT, # Plate Data set
+                        "WT", 1:6, # cell line, plate columns
+                        c("GSK343", "GSK343", "GSK467", "GSK467", "GSK503", "GSK503") # treatments
+                    )
+
+
+# Plate 12  - GSK-J4 1-2 (7-8), iBET 151 3-4 (9-10), GSK 503 5-6 (11-12) WT left, Cis Right ========================================================================================== ##
+P12_WT_NucLocs <- nucLoc(P12_WT)
+P12_WT <- rmColumns(P12_WT, NACols)
+P12_WT <- cpMakeMeta("P12", list(gskJ4Dose, gskJ4Dose, iBET151Dose, iBET151Dose, iBET726Dose, iBET726Dose), # Doses
+                        c("A", "A", "E", "E","F", "F"), # Untreated
+                        P12_WT, # Plate Data set
+                        "WT", 1:6, # cell line, plate columns
+                        c("GSKJ4", "GSKJ4", "iBET151", "iBET151", "iBET726", "iBET726") # treatments
+                    )
+```
+## Remove bad cells
+```{r}
+
+
 ```
 
+## normalisation
+```{r}
+dataCols <- colnames(P1_WT)[!(colnames(P1_WT) %in% metCols)]
+
+## Scale Median, MAD function
+scaleMedMad <- function(x){(x - median(x))/mad(x)}
+
+## Scaled Data
+P1_WT_MED_UT <-  P1_WT[P1_WT$Treatment == "untreated",] %>% mutate_at(dataCols, scaleMedMad)
+P2_WT_MED_UT <-  P2_WT[P2_WT$Treatment == "untreated",] %>% mutate_at(dataCols, scaleMedMad)
+P3_WT_MED_UT <-  P3_WT[P3_WT$Treatment == "untreated",] %>% mutate_at(dataCols, scaleMedMad)
+P4_WT_MED_UT <-  P4_WT[P4_WT$Treatment == "untreated",] %>% mutate_at(dataCols, scaleMedMad)
+
+```
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
