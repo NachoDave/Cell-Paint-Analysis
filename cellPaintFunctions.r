@@ -309,6 +309,17 @@ rmNaCols <- function(dat, featureList){
   
 }
 
+## List na columns ================================================================================================= ##
+listNaCols <- function(dat, featureList){
+  
+  dat <- dat[, featureList]
+  
+  naCols <- featureList[as.logical(colSums(is.na(dat)))]
+  
+  return(naCols) 
+  
+}
+
 ## Remove signle value columns ===================================================================================== ##
 rmSingleValueCols <- function(dat, features){
   
@@ -319,12 +330,43 @@ rmSingleValueCols <- function(dat, features){
   
 }
 
-## Remove nearzero variance columns 
+## List signle value columns ===================================================================================== ##
+listSingleValueCols <- function(dat, features){
+  
+  dat <- dat[, features]
+  svCols <- features[apply(dat, 2, function(x) (sum(x) == length(x)*x[1]))]
+  #l <- nrow(dat)
+  #dat <- dat[, apply(dat, 2, function(x) !(sum(unique(x)) == 1))]
+  #dat <- dat[, apply(dat[,1:100, (l - 99):l], 2, function(x) !(sum(x)/200 == x[1]))]
+  return(svCols)
+}
+
+
+## Remove nearzero variance columns ===================================================================================== ## 
 rmNearZeroVar <- function(dat, features){
   #browser()
   ## This function takes a long time to run, so ranodmly sample 10000 data points
   dat <- dat[, features]
   #browser()
   dat <- dat[, apply(dat[sample(nrow(dat),10000) , ], 2, function(x) !length(nearZeroVar(x)))]
+  
+}
+
+## list nearzero variance columns ===================================================================================== ## 
+listNearZeroVar <- function(dat, features, n = 10000){
+  #browser()
+  ## This function takes a long time to run, so ranodmly sample 10000 data points
+  dat <- dat[, features]
+  #browser()
+  nzVarFeatures <- features[apply(dat[sample(nrow(dat),n) , ], 2, function(x) length(nearZeroVar(x)))]
+  return(nzVarFeatures)
+}
+
+## Get median values for each well ===================================================================================== ## 
+getWellMed <- function(dt, datCols, metCols, grpCol = "Metadata_Well_nuc"){
+
+  dtMed <- dt %>% group_by_at(metCols) %>% dplyr::summarise(dplyr::across(datCols, ~ median(.x, na.rm = TRUE)))
+  
+  return(dtMed)
   
 }

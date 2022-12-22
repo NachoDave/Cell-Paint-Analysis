@@ -323,18 +323,179 @@ P10_WT_Nrm <- sclDtByMedMAD(P10_WT, P10_WT_MED_UT, P10_WT_MAD_UT, dataCols)
 P11_WT_Nrm <- sclDtByMedMAD(P11_WT, P11_WT_MED_UT, P11_WT_MAD_UT, dataCols)
 P12_WT_Nrm <- sclDtByMedMAD(P12_WT, P12_WT_MED_UT, P12_WT_MAD_UT, dataCols)
 
+rm(P1_WT)
+rm(P2_WT)
+rm(P3_WT)
+rm(P4_WT)
+
+rm(P5_WT)
+rm(P6_WT)
+rm(P7_WT)
+rm(P8_WT)
+
+rm(P9_WT)
+rm(P10_WT)
+rm(P11_WT)
+rm(P12_WT)
+
+gc()
 ```
 
 ## Remove single value and zero variance and NA values
 
-```{r}
+```{r, remove NA columns}
+## R1
+P1_WT_Nrm_NACols <- listNaCols(P1_WT_Nrm, dataCols)
+P2_WT_Nrm_NACols <- listNaCols(P2_WT_Nrm, dataCols)
+P3_WT_Nrm_NACols <- listNaCols(P3_WT_Nrm, dataCols)
+P4_WT_Nrm_NACols <- listNaCols(P4_WT_Nrm, dataCols)
+## R2
+P5_WT_Nrm_NACols <- listNaCols(P5_WT_Nrm, dataCols)
+P6_WT_Nrm_NACols <- listNaCols(P6_WT_Nrm, dataCols)
+P7_WT_Nrm_NACols <- listNaCols(P7_WT_Nrm, dataCols)
+P8_WT_Nrm_NACols <- listNaCols(P8_WT_Nrm, dataCols)
 
+##R3
+P9_WT_Nrm_NACols <- listNaCols(P9_WT_Nrm, dataCols)
+P10_WT_Nrm_NACols <- listNaCols(P10_WT_Nrm, dataCols)
+P11_WT_Nrm_NACols <- listNaCols(P11_WT_Nrm, dataCols)
+P12_WT_Nrm_NACols <- listNaCols(P12_WT_Nrm, dataCols)
 
+AllNACols <- unique(c(P1_WT_Nrm_NACols, P2_WT_Nrm_NACols, P3_WT_Nrm_NACols, P4_WT_Nrm_NACols,
+                   P5_WT_Nrm_NACols, P6_WT_Nrm_NACols, P7_WT_Nrm_NACols, P8_WT_Nrm_NACols,
+                   P9_WT_Nrm_NACols, P10_WT_Nrm_NACols, P11_WT_Nrm_NACols, P12_WT_Nrm_NACols))
+
+## Remove NA columns from all dataframes
+dataCols <- dataCols[!(dataCols %in% AllNACols)]
+
+# # R1
+# P1_WT_Nrm <- P1_WT_Nrm[, c(metCols, dataCols)]
+# P2_WT_Nrm <- P2_WT_Nrm[, c(metCols, dataCols)]
+# P3_WT_Nrm <- P3_WT_Nrm[, c(metCols, dataCols)]
+# P4_WT_Nrm <- P4_WT_Nrm[, c(metCols, dataCols)]
+# 
+# # R2
+# P5_WT_Nrm <- P5_WT_Nrm[, c(metCols, dataCols)]
+# P6_WT_Nrm <- P6_WT_Nrm[, c(metCols, dataCols)]
+# P7_WT_Nrm <- P7_WT_Nrm[, c(metCols, dataCols)]
+# P8_WT_Nrm <- P8_WT_Nrm[, c(metCols, dataCols)]
+# 
+# # R3
+# P9_WT_Nrm <- P9_WT_Nrm[, c(metCols, dataCols)]
+# P10_WT_Nrm <- P10_WT_Nrm[, c(metCols, dataCols)]
+# P11_WT_Nrm <- P11_WT_Nrm[, c(metCols, dataCols)]
+# P12_WT_Nrm <- P12_WT_Nrm[, c(metCols, dataCols)]
+```
+
+```{r, remove single value columns}
+# R1
+P1_WT_Nrm_SVCols <- listSingleValueCols(P1_WT_Nrm, dataCols)
+P2_WT_Nrm_SVCols <- listSingleValueCols(P2_WT_Nrm, dataCols)
+P3_WT_Nrm_SVCols <- listSingleValueCols(P3_WT_Nrm, dataCols)
+P4_WT_Nrm_SVCols <- listSingleValueCols(P4_WT_Nrm, dataCols)
+
+# R2
+P5_WT_Nrm_SVCols <- listSingleValueCols(P5_WT_Nrm, dataCols)
+P6_WT_Nrm_SVCols <- listSingleValueCols(P6_WT_Nrm, dataCols)
+P7_WT_Nrm_SVCols <- listSingleValueCols(P7_WT_Nrm, dataCols)
+P8_WT_Nrm_SVCols <- listSingleValueCols(P8_WT_Nrm, dataCols)
+
+# R3
+P9_WT_Nrm_SVCols <- listSingleValueCols(P9_WT_Nrm, dataCols)
+P10_WT_Nrm_SVCols <- listSingleValueCols(P10_WT_Nrm, dataCols)
+P11_WT_Nrm_SVCols <- listSingleValueCols(P11_WT_Nrm, dataCols)
+P12_WT_Nrm_SVCols <- listSingleValueCols(P12_WT_Nrm, dataCols)
+
+AllSVCols <- unique(c(P1_WT_Nrm_SVCols, P2_WT_Nrm_SVCols, P3_WT_Nrm_SVCols, P4_WT_Nrm_SVCols,
+                   P5_WT_Nrm_SVCols, P6_WT_Nrm_SVCols, P7_WT_Nrm_SVCols, P8_WT_Nrm_SVCols,
+                   P9_WT_Nrm_SVCols, P10_WT_Nrm_SVCols, P11_WT_Nrm_SVCols, P12_WT_Nrm_SVCols))
+
+## Remove SV columns from all dataframes
+dataCols <- dataCols[!(dataCols %in% AllSVCols)]
 
 ```
 
-## Get the median values 
-```{r}
+```{r, low variance columns}
+# R1 doesn't seem to be a problem so leave
+#P1_WT_Nrm_NZVarCols <- listNearZeroVar(P1_WT, dataCols)
 
+
+```
+## Get the median values of each well and each plate
+```{r}
+## Need the meta columns that are the same for each well for grouping
+
+# R1
+P1_WT_Well_Med <- getWellMed(P1_WT_Nrm, dataCols, metCols[c(4:6, 8:11)])
+P2_WT_Well_Med <- getWellMed(P2_WT_Nrm, dataCols, metCols[c(4:6, 8:11)]) 
+P3_WT_Well_Med <- getWellMed(P3_WT_Nrm, dataCols, metCols[c(4:6, 8:11)]) 
+P4_WT_Well_Med <- getWellMed(P4_WT_Nrm, dataCols, metCols[c(4:6, 8:11)]) 
+
+# R2
+P5_WT_Well_Med <- getWellMed(P5_WT_Nrm, dataCols, metCols[c(4:6, 8:11)])
+P6_WT_Well_Med <- getWellMed(P6_WT_Nrm, dataCols, metCols[c(4:6, 8:11)]) 
+P7_WT_Well_Med <- getWellMed(P7_WT_Nrm, dataCols, metCols[c(4:6, 8:11)]) 
+P8_WT_Well_Med <- getWellMed(P8_WT_Nrm, dataCols, metCols[c(4:6, 8:11)]) 
+
+# R3
+P9_WT_Well_Med <- getWellMed(P9_WT_Nrm, dataCols, metCols[c(4:6, 8:11)])
+P10_WT_Well_Med <- getWellMed(P10_WT_Nrm, dataCols, metCols[c(4:6, 8:11)]) 
+P11_WT_Well_Med <- getWellMed(P11_WT_Nrm, dataCols, metCols[c(4:6, 8:11)]) 
+P12_WT_Well_Med <- getWellMed(P12_WT_Nrm, dataCols, metCols[c(4:6, 8:11)]) 
+
+PAll_WT_Well_med <- rbind(P1_WT_Well_Med, P2_WT_Well_Med, P3_WT_Well_Med, P4_WT_Well_Med,
+                          P5_WT_Well_Med, P6_WT_Well_Med, P7_WT_Well_Med, P8_WT_Well_Med,
+                          P9_WT_Well_Med, P10_WT_Well_Med, P11_WT_Well_Med, P12_WT_Well_Med
+                          )
 ```
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## Remove correlated features
+```{r}
+
+PAll_Correlated_features <- findCorrelatedFeatures(PAll_WT_Well_med, dataCols)
+dataColsNoCorr <- names(PAll_Correlated_features)
+```
+
+## PCA WT
+```{r}
+
+xx <- grepl("untreated|Cisplatin", PAll_WT_Well_med$Treatment)
+
+pcaWT <- prcomp((PAll_WT_Well_med[, dataColsNoCorr]), scale = T)
+
+pcaWTDf <- cbind(PAll_WT_Well_med[,metCols[c(4:6, 8:11)] ], data.frame(PC1 = pcaWT$x[,1], PC2 = pcaWT$x[,2], PC3 = pcaWT$x[,3]))
+varExplained <- 100*pcaWT$sdev^2/sum(pcaWT$sdev^2)
+
+ggplot(pcaWTDf, aes(x = PC1, y = PC2,  color = Treatment)) + 
+  geom_point(size= 2) + xlab(paste("PC1: % Variance Explained = ", round(varExplained[1], 2))) + theme_bw() +
+                               ylab(paste("PC2: % Variance Explained = ", round(varExplained[2], 1))) #+  xlim(-45, -30) + ylim(0, 10)
+                               #xlim(-15, -5) + ylim(-5, 5)
+
+ggplot(pcaWTDf, aes(x = PC1, y = PC3,  color = Treatment)) + 
+  geom_point(size= 2) + xlab(paste("PC1: % Variance Explained = ", round(varExplained[1], 2))) + theme_bw() +
+                               ylab(paste("PC3: % Variance Explained = ", round(varExplained[3], 1))) #+  xlim(-45, -30) + ylim(0, 10)
+
+ggplot(pcaWTDf, aes(x = PC2, y = PC3,  color = Treatment)) + 
+  geom_point(size= 2) + xlab(paste("PC2: % Variance Explained = ", round(varExplained[2], 2))) + theme_bw() +
+                               ylab(paste("PC3: % Variance Explained = ", round(varExplained[3], 1))) #+  xlim(-45, -30) + ylim(0, 10)
+
+
+```
+
+## Theta Mapping
+
+## Cell Cycle
+```{r}
+
+WT_Cisplatin_CellCycle <- P1_WT[grepl("untreated|Cisplatin",P1_WT$Treatment),c(metCols, "Intensity_IntegratedIntensity_DNA_Corr_nuc")]
+
+for (dx in unique(WT_Cisplatin_CellCycle$Dose)){
+  
+  p <- ggplot(WT_Cisplatin_CellCycle[WT_Cisplatin_CellCycle$Dose == dx,], aes(x = Intensity_IntegratedIntensity_DNA_Corr_nuc)) + 
+    geom_histogram(bins = 200, fill = "blue") + ggtitle(paste("Cell Cycle Cisplatin, Dose = ", dx)) + ylab("Count") + xlab("Integrated Intensity") +
+    xlim(0, 30)
+  ggsave(paste0("/data/DaveJames/Papers/CellPaintDose/FiguresMeeting141222/CellCycleDose_", dx, ".png") , p)
+  
+}
+```

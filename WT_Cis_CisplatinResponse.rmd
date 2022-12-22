@@ -40,7 +40,7 @@ NACols <- c("AreaShape_NormalizedMoment_0_0_nuc", "AreaShape_NormalizedMoment_0_
 
 ## Load datasets
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, message=FALSE}
 
 # Plate 1 WT
 P1_WT <- load_CP_csv("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/headlessTest/P1/P1_Results/", 
@@ -136,7 +136,25 @@ P9_Cis <- cpMakeMeta("P1", list(c( "500", "2000", "5000", "10000", "20000", "400
 metCols <- colnames(P1_WT)[1:11]
 datCols <- colnames(P1_WT)[12:length(colnames(P1_WT))]
 ```
+## Make DF of all cisplation treatments and untreated samples
+```{r}
 
+WT_CisplatinUntreated <- rbind(P1_WT[grepl("untreated|Cisplatin", P1_WT$Treatment), ], 
+                               P5_WT[grepl("untreated|Cisplatin", P5_WT$Treatment), ],
+                               P9_WT[grepl("untreated|Cisplatin", P9_WT$Treatment), ])
+
+Cis_CisplatinUntreated <- rbind(P1_Cis[grepl("untreated|Cisplatin", P1_Cis$Treatment), ],
+                                P5_Cis[grepl("untreated|Cisplatin", P5_Cis$Treatment), ],
+                                P9_Cis[grepl("untreated|Cisplatin", P9_Cis$Treatment), ])
+
+```
+
+
+
+
+
+
+####### Older stuff!
 ## Get mean/median/sd/MAD for each plate
 ```{r}
 ## P1 WT
@@ -491,6 +509,38 @@ P1_WT_Cis_UT_RndShapeNrmSOM_ResCis <- dplyr::inner_join(P1_WT_Cis_UT_RndShapeNrm
 #         outDr = "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions/WTCisRandomSelectionUntreated///", prefix = "WTCisUT_SOM_RandSelection", clses = "P1_WT_Cis_UT_RndShapeNrmSOM$unit.classif", 
 #         imSufix = "_Cis.jpeg")
 
+```
+## Minimal Spanning tree for SOM
+```{r}
+
+SOM_Dists <- dist(P1_WT_Cis_UT_RndShapeNrmSOM$codes[[1]])
+SOM_dst_mat <- matrix(ncol = 3, nrow = length(SOM_Dists))
+
+rowSOM_N <- nrow(SOM_Dists)
+colSOM_N <- ncol(SOM_Dists)
+
+rowSOM <- unlist(sapply(2:rowSOM_N, function(x){x:rowSOM_N}))
+colSOM <- unlist(sapply(1:(rowSOM_N - 1), function(x){rep(x,(rowSOM_N - x) ) }))
+  
+cnt <- 1
+
+for (dx in 1:length(SOM_Dists)){
+  
+  SOM_dst_mat[dx, ] <- c(colSOM[dx], rowSOM[dx], SOM_Dists[dx])
+  
+}
+
+## Make spanning matrix
+SOM_G <- graph.data.frame(SOM_dst_mat[,1:2] ,directed = FALSE)
+plot(SOM_G, asp = 1)
+
+E(SOM_G)$weight = SOM_dst_mat[,3]       # specify the actual weight
+E(SOM_G)$label  = E(SOM_G)$weight # labels for the weight
+V(SOM_G)$size = 15            # node size
+plot(SOM_G, asp=0)
+
+SOM_MST <- minimum.spanning.tree(SOM_G)
+plot(SOM_MST)
 ```
 # SOM for plate 5
 
