@@ -149,6 +149,12 @@ Cis_CisplatinUntreated <- rbind(P1_Cis[grepl("untreated|Cisplatin", P1_Cis$Treat
 
 ```
 
+## Create datasets for SOM
+```{r}
+
+```
+
+## SOM and MST
 
 
 
