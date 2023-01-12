@@ -1,4 +1,6 @@
 require(tidyr)
+require(imager)
+require(purrr)
 
 ## Functions related to SOMs and minimal spanning trees
 
@@ -57,48 +59,109 @@ plotSOM_nodes <- function(SOM_map, dat, grp = c("Treatment", "Dose")){
   
 }
 
-## Create image plots for each SOM node
 
-nucPlot <- function(data, imDr, outDr, prefix = "", fn = "Filename", clses = "P1_CisNucMap$unit.classif", 
-                    xLoc = "Location_Center_X_nuc", yLoc = "Location_Center_Y_nuc", imSufix = "_Cis.jpeg", objectNoDx = "ObjectNumber_nuc"){
-  #browser()
-  # Make image directories
-  for (ix in unique(data[, clses])){
+### Create images of cells from SOM results
+
+makeImagePatches <- function(metaData, SOM_class, nucLocs, outDr, prefix,
+                          xLoc = "Location_Center_X_nuc", yLoc = "Location_Center_Y_nuc",
+                          objectNoDx = "ObjectNumber_nuc", smpN = 10, imSegSuffix = ".jpeg", xYBd = 100, setSeed = FALSE){
+  
+  if (!assertthat::are_equal(nrow(metaData), length(SOM_class))){
     
-    dir.create(paste0(outDr, prefix, "_", ix))
-    
+    print("The ncol of metaData is no equal to the length of the SOM class vector")
+    return()
   }
-  # Make image patches
-  for (dx in 1:nrow(data)){
-    #browser()
-    I <- load.image(file.path( imDr, gsub(".tif", imSufix,data$Filename[dx])))
-    ## Nuclei images
-    I1 <- imsub(I, x > round(max(1, data[dx,xLoc])) - 30 &
-                  x < round(min(1024, data[dx,xLoc])) + 30,
-                y > round(max(1, data[dx,yLoc])) - 30 &
-                  y < round(min(1024, data[dx,yLoc])) + 30
-    )
-    #browser()
-    save.image(I1, paste0(outDr, "/", prefix, "_", data[dx, clses],  
-                          "/", gsub(".tif", paste0("NucDx_",
-                                                   data[dx, objectNoDx],  imSufix
-                          ),data$Filename[dx])
-    ))
+  
+  if (!assertthat::are_equal(nrow(metaData), nrow(nucLocs))){
     
-    ## Cell images
-    I2 <- imsub(I, x > round(max(1025, 1024 + data[dx,xLoc])) - 50 &
-                  x < round(min(2*1024, 1024+data[dx,xLoc])) + 50,
-                y > round(max(1, data[dx,yLoc])) - 50 &
-                  y < round(min(1024, data[dx,yLoc])) + 50
-    )
+    print("The ncol of metaData is no equal to the nrow of the nuclei location data")
+    return()
+  }  
+  if (setSeed) set.seed(25)
+  
+  SOM_classN <- length(unique(SOM_class))
+  
+  ## Create directories
+  for (ix in 1:SOM_classN){
+    if (!dir.exists(paste0(outDr, "/",prefix, "_", ix))){
+      dir.create(paste0(outDr, "/",prefix, "_", ix))
+    }
+  }
+  
+  #browser()
+  
+  ## Open the images for each cell
+  for (dx in 1:SOM_classN){ # loop through each SOM_class
+    smp <- sample(sum(SOM_class == dx), min(smpN, sum(SOM_class == dx)))
     
-    save.image(I2, paste0(outDr, "/", prefix, "_", data[dx, clses],  
-                          "/", gsub(".tif", paste0("Cell_NucDx_",
-                                                   data[dx, objectNoDx],  imSufix
-                          ),data$Filename[dx])
-    ))
+    tMet <- metaData[SOM_class == dx, ][smp,]
+    tLoc <- nucLocs[SOM_class == dx, ][smp,]
     
+    for(ix in 1:nrow(tMet)){
+      ## Tiff images --------------------------- ##
+      
+      xMin <- floor(max(1, tLoc[ix,xLoc] - xYBd))
+      xMax <- ceiling(min(1024, tLoc[ix,xLoc] + xYBd))
+      yMin <- floor(max(1, tLoc[ix,yLoc] - xYBd))
+      yMax <- ceiling(min(1024, tLoc[ix,yLoc] + xYBd))
+      
+      # Nuclei
+      I_DNA <- load.image(file.path(tMet$Imagepath[ix], tMet$FilenameDNA[ix]))
+      I_DNA_Patch <- imsub(I_DNA, x > xMin &
+                                   x < xMax,
+                                 y > yMin &
+                                   y < yMax
+      )
+      
+      I_DNA_Patch <- imappend(list(I_DNA_Patch, I_DNA_Patch, I_DNA_Patch), "c")
+      
+      # Cytoplasm
+      I_Cyto <- load.image(file.path(tMet$Imagepath[ix], tMet$FilenameCyto[ix]))
+      I_Cyto_Patch <- imsub(I_Cyto, x > xMin &
+                              x < xMax,
+                            y > yMin &
+                              y < yMax
+      )
+      
+      I_Cyto_Patch <-  imappend(list(imfill(dim(I_Cyto_Patch)[1],dim(I_Cyto_Patch)[2],1, val = 0), I_Cyto_Patch, imfill(dim(I_Cyto_Patch)[1],dim(I_Cyto_Patch)[2],1, val = 0)), "c") # convert to RGB
+      
+      I_DNA_Cyto_Patch <- imappend(list(I_DNA_Patch, I_Cyto_Patch*2.5), "x")
+      I_DNA_Cyto_Patch <- I_DNA_Cyto_Patch/max(I_DNA_Cyto_Patch)
+      
+      #browser()
+      ## Segmentation Images --------------------------- ##
+      
+      segPth <- file.path(tMet$Segmentationpath[ix], gsub(".tif", paste0("_", tMet$cell_line[ix], imSegSuffix), tMet$FilenameDNA[ix]))
+      
+      if (file.exists(segPth)){ ## check that the segmentation images exists
+        I_Seg <- load.image(segPth)
+        I_Seg_DNA_Patch <- imsub(I_Seg, x > xMin &
+                                   x < xMax,
+                                 y > yMin &
+                                   y < yMax
+        )
+        I_Seg_Cyto_Patch <- imsub(I_Seg, x > floor(max(1025, 1024 + tLoc[ix,xLoc] - xYBd)) &
+                                  x < ceiling(min(2048, 1024 + tLoc[ix,xLoc] + xYBd)),
+                                y > floor(max(1, tLoc[ix,yLoc] - xYBd)) &
+                                  y < ceiling(min(1024, tLoc[ix,yLoc] + xYBd))
+        )
+        
+        I_Seg_DNA_Cyto_Patch <- imappend(list(I_Seg_DNA_Patch, I_Seg_Cyto_Patch), "x")
+        I_DNA_Cyto_Patch <- imappend(list(I_DNA_Cyto_Patch, I_Seg_DNA_Cyto_Patch), "y")
+
+      }
+      #browser()
+      
+      ## Write image to file
+      svPth <- file.path(outDr, paste0(prefix, "_", dx), paste0(gsub("\\ |\\(|\\))","" , gsub(" wv UV - DAPI\\)\\.tif", "", tMet$FilenameDNA[ix])),
+                         "_Ob", tMet$ObjectNumber_nuc[ix], "_", tMet$cell_line[ix], "_", tMet$plate[ix], "_", tMet$Treatment[ix],  gsub("\\.","p" , tMet$Dose[ix]), "_SOM",dx, ".png") )
+      
+      save.image(I_DNA_Cyto_Patch, svPth)
+      #browser()
+    }
     
   }
   
+  
 }
+

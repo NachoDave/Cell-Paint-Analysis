@@ -36,15 +36,16 @@ load_CP_csv <- function(pth, prefix = "", nucSuf = "Nuclei", cellSuf = "Cell", c
 
 
 ## Change the metadata
-cpMakeMeta <- function(plate, doses, utRow, df, cellline, cols, treatment, metaColN = 20, suffix = "_nuc", reverse = T){
+cpMakeMeta <- function(plate, doses, utRow, df, cellline, cols, treatment, imagePath, segmentationPath, metaColN = 26, suffix = "_nuc", reverse = T){
   
-  if (reverse){
-    
-    doses <- rev(doses)
-    
-  }
+  # if (reverse){
+  #   
+  #   doses <- rev(doses)
+  #   
+  # }
   #browser()
-  metaDat <- data.frame(ImageNumber = df$ImageNumber, Filename = df$FileName_DNA, ObjectNumber = df[paste0("ObjectNumber", suffix)],
+  metaDat <- data.frame(ImageNumber = df$ImageNumber, FilenameDNA = df$FileName_DNA, FilenameCyto = df$FileName_Cytoskeleton_nuc, Imagepath = imagePath, 
+                        Segmentationpath = segmentationPath, ObjectNumber = df[paste0("ObjectNumber", suffix)],
                         Metadata_Well = df[paste0("Metadata_Well", suffix)], Metadata_Row = df[paste0("Metadata_Row", suffix)],
                         Metadata_Column = df[paste0("Metadata_Column", suffix)],
                         Metadata_Field_nuc = df[paste0("Metadata_Site", suffix)],
@@ -55,6 +56,7 @@ cpMakeMeta <- function(plate, doses, utRow, df, cellline, cols, treatment, metaC
 
   rowNms <- unique(df[paste0("Metadata_Row", suffix)],)
   
+  #browser()
   ## Get the treatments
   for (cdx in 1:length(cols)){
     
@@ -62,11 +64,22 @@ cpMakeMeta <- function(plate, doses, utRow, df, cellline, cols, treatment, metaC
     metaDat$Treatment[metaDat$Metadata_Column_nuc == cols[cdx] & metaDat$Metadata_Row_nuc == utRow[cdx]] <- "untreated"
     metaDat$Dose[metaDat$Metadata_Column_nuc == cols[cdx] & metaDat$Metadata_Row_nuc == utRow[cdx]] <- 0
     # Set the treatments
+
+    ds <- doses[[cdx]]
+    #browser()
+    if(reverse){
+      
+      ds <- rev(ds)
+      
+    }
+    
     
     tRowNms <- rowNms[!rowNms == utRow[cdx]]
     for (rdx in 1:length(tRowNms)){
       #browser()
-      metaDat$Dose[metaDat$Metadata_Column_nuc == cols[cdx] & metaDat$Metadata_Row_nuc == tRowNms[rdx]] <- doses[[cdx]][rdx]
+
+      
+      metaDat$Dose[metaDat$Metadata_Column_nuc == cols[cdx] & metaDat$Metadata_Row_nuc == tRowNms[rdx]] <- ds[rdx]
       
     }
     
