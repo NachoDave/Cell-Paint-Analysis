@@ -4,11 +4,18 @@ require(purrr)
 
 ## Functions related to SOMs and minimal spanning trees
 
-makeMSTFromSOM <- function(SOM_map){
+makeMSTFromSOM <- function(SOM_map, distMethod = "euclidean"){
   
   ## Function for making MST froms SOMs
   #browser()
-  SOM_Dists <- dist(SOM_map$codes[[1]])
+  
+  if(class(SOM_map) == "kohonen"){
+    
+    SOM_map <- SOM_map$codes[[1]]
+    
+  }
+  
+  SOM_Dists <- dist(SOM_map, method = distMethod)
   SOM_dst_mat <- matrix(ncol = 3, nrow = length(SOM_Dists))
   
   rowSOM_N <- nrow(as.matrix(SOM_Dists)) 
@@ -64,7 +71,7 @@ plotSOM_nodes <- function(SOM_map, dat, grp = c("Treatment", "Dose")){
 
 makeImagePatches <- function(metaData, SOM_class, nucLocs, outDr, prefix,
                           xLoc = "Location_Center_X_nuc", yLoc = "Location_Center_Y_nuc",
-                          objectNoDx = "ObjectNumber_nuc", smpN = 10, imSegSuffix = ".jpeg", xYBd = 100, setSeed = FALSE){
+                          objectNoDx = "ObjectNumber_nuc", smpN = 10, imSegSuffix = ".jpeg", xYBd = 100, setSeed = FALSE, seed = 1){
   
   if (!assertthat::are_equal(nrow(metaData), length(SOM_class))){
     
@@ -77,7 +84,7 @@ makeImagePatches <- function(metaData, SOM_class, nucLocs, outDr, prefix,
     print("The ncol of metaData is no equal to the nrow of the nuclei location data")
     return()
   }  
-  if (setSeed) set.seed(25)
+  if (setSeed) set.seed(seed)
   
   SOM_classN <- length(unique(SOM_class))
   
@@ -88,7 +95,7 @@ makeImagePatches <- function(metaData, SOM_class, nucLocs, outDr, prefix,
     }
   }
   
-  #browser()
+ # browser()
   
   ## Open the images for each cell
   for (dx in 1:SOM_classN){ # loop through each SOM_class
@@ -164,4 +171,150 @@ makeImagePatches <- function(metaData, SOM_class, nucLocs, outDr, prefix,
   
   
 }
+
+### Create summary plots of number of cells and percentage in eacg cluster
+pltCellsInClusters <- function(dat, SOMVals, somCls, metCols, savDr){
+  
+  xx <- hclust(dist(SOMVals, "canberra"))
+  yy <- cutree(xx, k = 15)
+  
+  # Data.frame of SOM/cluster classes
+  WT_Cis_FiltParmMapSOM36_Class <- cbind(dat[,metCols], som_class = somCls)
+  WT_Cis_FiltParmMapSOM36_Class$Cluster <- 0
+  
+  ## Get the mapping between SOM classes and clusters
+  somClustListFiltParm <- yy
+  
+  myLocIC50WT <- 3 + 1.43/3
+  myLocIC50Cis <- 6 + 8000/(40000-20000)
+  
+  for (idx in 1:length(somClustListFiltParm)){
+    WT_Cis_FiltParmMapSOM36_Class$Cluster[WT_Cis_FiltParmMapSOM36_Class$som_class == as.numeric(gsub("V", "", names(somClustListFiltParm)[idx]))] <- somClustListFiltParm[idx]
+  }
+  
+  ## Get possible data columns and number of cells in each
+  cellsByGroup <- WT_Cis_FiltParmMapSOM36_Class[,c("Dose", "Treatment", "plate", "Metadata_Well_nuc", "cell_line") ] %>% count(Dose, Treatment, plate, Metadata_Well_nuc, cell_line, name = "total_cells")# %>% group_by(Dose, cell_line, Treatment) %>% summarise(n = sum(n))   
+  
+  ## Plot some stuff  
+  
+  for (px in sort(unique(WT_Cis_FiltParmMapSOM36_Class$Cluster))){
+    
+    tDf <- WT_Cis_FiltParmMapSOM36_Class[WT_Cis_FiltParmMapSOM36_Class$Cluster == px,]
+    
+    ## Count cells
+    tDsCnts <- tDf %>% count(Dose, Treatment, plate, Metadata_Well_nuc, cell_line)
+    
+    tCnts <- cellsByGroup
+    tCnts <- dplyr::left_join(tCnts, tDsCnts, by = c("Dose", "Treatment", "Metadata_Well_nuc", "plate", "cell_line"))
+    tCnts$n[is.na(tCnts$n)] = 0
+    
+    tCnts$percent <- 100*tCnts$n/cellsByGroup$total_cells
+    
+    ## Get mean and standard deviations of wells for each treatment
+    
+    tDsPltCnts <- tCnts %>% group_by(Dose, cell_line, Treatment) %>% summarise(mnN = mean(n), sdN = sd(n), mnPer = mean(percent), sdPer = sd(percent))
+    tDsPltCnts$Dose <- factor( tDsPltCnts$Dose, levels = sort(unique(as.numeric(tDsPltCnts$Dose))))  
+    
+    ## Get percentage of total population for each cell type cisplatin
+    doxPerPlt <- ggplot(tDsPltCnts[grepl("Doxo|untreated", tDsPltCnts$Treatment), ], aes(x = (Dose), y = mnPer, fill = cell_line)) + 
+      geom_bar(stat = "identity", position= position_dodge(), color = "black") + geom_errorbar(aes(ymin=mnPer-sdPer, ymax=mnPer+sdPer), width=.2,position=position_dodge(.9)) +
+      xlab("Dose (nm)") + ylab("Percent of total cells") + theme_bw() + ggtitle("Percentage of cells Doxo treat") +
+      scale_fill_discrete(name = "Cell line")  + 
+      geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2) # +
+    # annotate("text", x=myLocIC50WT - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="WT Dox IC50", angle=90) + 
+    # annotate("text", x=myLocIC50Cis - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="Cis Dox IC50", angle=90)
+    
+    
+    cisPerPlt <- ggplot(tDsPltCnts[grepl("Cis|untreated", tDsPltCnts$Treatment), ], aes(x = Dose, y = mnPer, fill = cell_line)) + 
+      geom_bar(stat = "identity", position= position_dodge(), color = "black") + geom_errorbar(aes(ymin=mnPer-sdPer, ymax=mnPer+sdPer), width=.2,position=position_dodge(.9)) +
+      xlab("Dose (nm)") + ylab("Percent of total cells") + theme_bw() + ggtitle("Percentage of cells Cis treat") +
+      scale_fill_discrete(name = "Cell line")  + 
+      geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2) +
+      annotate("text", x=myLocIC50WT - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="WT Cis IC50", angle=90) + 
+      annotate("text", x=myLocIC50Cis - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="Cis Cis IC50", angle=90) 
+    
+    
+    ## Get cell counts for each group 
+    ### Cisplatin
+    cntsWTCis <- ggplot(tDsPltCnts[grepl("Cis|untreated", tDsPltCnts$Treatment) & grepl("WT", tDsPltCnts$cell_line), ], aes(x = Dose, y = mnN)) + 
+      geom_bar(stat = "identity", position= position_dodge(), color = "black", fill = "#00bfc4") + geom_errorbar(aes(ymin=mnN-sdN, ymax=mnN+sdN), width=.2,position=position_dodge(.9)) +
+      xlab("Dose (nm)") + ylab("Number of cells") + theme_bw() + ggtitle("No of cells Cis treat WT") + 
+      scale_fill_discrete(name = "Cell line")  + 
+      geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2) +
+      annotate("text", x=myLocIC50WT - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="WT Cis IC50", angle=90) + 
+      annotate("text", x=myLocIC50Cis - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="Cis Cis IC50", angle=90)       
+    
+    cntsCisCis <- ggplot(tDsPltCnts[grepl("Cis|untreated", tDsPltCnts$Treatment) & grepl("Cis", tDsPltCnts$cell_line), ], aes(x = Dose, y = mnN)) + 
+      geom_bar(stat = "identity", position= position_dodge(), color = "black", fill = "#f8766d") + geom_errorbar(aes(ymin=mnN-sdN, ymax=mnN+sdN), width=.2,position=position_dodge(.9)) +
+      xlab("Dose (nm)") + ylab("Number of cells") + theme_bw() + ggtitle("No of cells Cis treat Cis") + 
+      scale_fill_discrete(name = "Cell line")  + 
+      geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2) #+
+    # annotate("text", x=myLocIC50WT - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="WT Cis IC50", angle=90) + 
+    # annotate("text", x=myLocIC50Cis - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="Cis Cis IC50", angle=90)     
+    
+    ### Doxorubicin
+    cntsWTDox <- ggplot(tDsPltCnts[grepl("Dox|untreated", tDsPltCnts$Treatment) & grepl("WT", tDsPltCnts$cell_line), ], aes(x = Dose, y = mnN)) + 
+      geom_bar(stat = "identity", position= position_dodge(), color = "black", fill = "#00bfc4") + geom_errorbar(aes(ymin=mnN-sdN, ymax=mnN+sdN), width=.2,position=position_dodge(.9)) +
+      xlab("Dose (nm)") + ylab("Number of cells") + theme_bw() + ggtitle("No cells Doxo treat WT") + 
+      scale_fill_discrete(name = "Cell line")  + 
+      geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2) +
+      annotate("text", x=myLocIC50WT - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="WT Cis IC50", angle=90) + 
+      annotate("text", x=myLocIC50Cis - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="Cis Cis IC50", angle=90)       
+    
+    cntsCisDox <- ggplot(tDsPltCnts[grepl("Dox|untreated", tDsPltCnts$Treatment) & grepl("Cis", tDsPltCnts$cell_line), ], aes(x = Dose, y = mnN)) + 
+      geom_bar(stat = "identity", position= position_dodge(), color = "black", fill = "#f8766d") + geom_errorbar(aes(ymin=mnN-sdN, ymax=mnN+sdN), width=.2,position=position_dodge(.9)) +
+      xlab("Dose (nm)") + ylab("Number of cells") + theme_bw() + ggtitle("No of cells Dox treat Cis") +
+      scale_fill_discrete(name = "Cell line")  + 
+      geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2) #+
+    # annotate("text", x=myLocIC50WT - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="WT Cis IC50", angle=90) + 
+    # annotate("text", x=myLocIC50Cis - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="Cis Cis IC50", angle=90)      
+    
+    plt <- cisPerPlt + doxPerPlt + cntsWTCis + cntsWTDox + cntsCisCis + cntsCisDox + plot_layout(ncol = 2, guides = "collect")
+    ggsave(paste0(savDr, "Cluster_", px, ".png"), plt, width = 8, height = 12)
+    
+  }  
+}
+
+## make composite plots from clusters
+
+compPlotsFromClusters <- function(imagePth, imPrefix, clusters, outPth, numberOfImagesFromEachSom = 2){
+  
+  n <- max(clusters)
+  #browser()
+  for (cx in 1:n){
+    compI <- NULL
+    tClsters <- gsub("V", "", names(clusters[clusters == cx]))
+
+    for (sx in 1:length(tClsters)){
+
+      
+    pth <- paste0(imagePth, imPrefix, tClsters[sx]) # get the path for the SOM node in the cluster
+    fn <- list.files(pth) # get the file names from the directory   
+          
+    smp <- sample(length(fn), numberOfImagesFromEachSom)
+      for(ix in 1:numberOfImagesFromEachSom){
+        ## load image
+  
+        iPth <- file.path(pth, fn[smp[ix]])
+        i <- load.image(iPth)
+        ## Add title to image
+        i <- draw_text(i, 10, 10, gsub(".png", "", fn[smp[ix]]), "white", fsize = 10)
+        
+        ## Append image
+        if (is.null(compI)){
+          compI <- i
+        }else{
+          
+          compI <- imappend(list(compI, i), "y")
+          
+          }
+        } # end loop through number of images for each SOM
+    } ## end loop through classes in each cluster
+    #browser()
+    ## Save Composites images
+    save.image(compI, paste0(outPth, imPrefix, "_comp_", cx, "SOM", paste(tClsters, collapse = "_"), ".png"))
+    
+    }
+}
+
 

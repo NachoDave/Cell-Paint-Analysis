@@ -43,8 +43,9 @@ cpMakeMeta <- function(plate, doses, utRow, df, cellline, cols, treatment, image
   #   doses <- rev(doses)
   #   
   # }
-  #browser()
-  metaDat <- data.frame(ImageNumber = df$ImageNumber, FilenameDNA = df$FileName_DNA, FilenameCyto = df$FileName_Cytoskeleton_nuc, Imagepath = imagePath, 
+ # browser()
+  metaDat <- data.frame(ImageNumber = df$ImageNumber, FilenameDNA = df$FileName_DNA,# FilenameCyto = df$FileName_Cytoskeleton_nuc, 
+                        Imagepath = imagePath, 
                         Segmentationpath = segmentationPath, ObjectNumber = df[paste0("ObjectNumber", suffix)],
                         Metadata_Well = df[paste0("Metadata_Well", suffix)], Metadata_Row = df[paste0("Metadata_Row", suffix)],
                         Metadata_Column = df[paste0("Metadata_Column", suffix)],
@@ -324,7 +325,7 @@ rmNaCols <- function(dat, featureList){
 
 ## List na columns ================================================================================================= ##
 listNaCols <- function(dat, featureList){
-  
+  #browser()
   dat <- dat[, featureList]
   
   naCols <- featureList[as.logical(colSums(is.na(dat)))]
@@ -345,7 +346,7 @@ rmSingleValueCols <- function(dat, features){
 
 ## List signle value columns ===================================================================================== ##
 listSingleValueCols <- function(dat, features){
-  
+  #browser()
   dat <- dat[, features]
   svCols <- features[apply(dat, 2, function(x) (sum(x) == length(x)*x[1]))]
   #l <- nrow(dat)
@@ -382,4 +383,38 @@ getWellMed <- function(dt, datCols, metCols, grpCol = "Metadata_Well_nuc"){
   
   return(dtMed)
   
+}
+
+## Scale data by the median and the MAD
+## Scaled Data
+
+sclDtByMedMAD <- function(dt, medValues, madValues, datCols){
+  #browser()
+  ## dt should be a dataframe or tibble
+  ## medValues should be a dataframe with 1 row and the same number of columns as dt with some median values of the columns
+  ## madValues should be a dataframe with 1 row and the same number of columns as dt with some MAD values of the columns
+  ## datCols should be a list of the metadata columns that we want to use
+  #browser()
+  dt[, datCols] <- sweep(dt[,datCols], 2, unlist(medValues[,datCols]),"-")
+  dt[, datCols] <- sweep(dt[,datCols], 2, unlist(madValues[,datCols]),"/")
+  
+  return(dt)
+}
+
+## Save pheatmap figure
+save_pheatmap_png <- function(x, filename, width=1200, height=1000, res = 150) {
+  png(filename, width = width, height = height, res = res)
+  grid::grid.newpage()
+  grid::grid.draw(x$gtable)
+  dev.off()
+}
+
+## Get max deviation
+getMaxMAD_Diff <- function(dt, datCols){
+  #browser()
+  dt <- dt[, datCols]
+  
+  xx <- apply(dt, 2, function(x){((abs(x - median(x)))/mad(x))})
+  
+  return(xx)
 }
