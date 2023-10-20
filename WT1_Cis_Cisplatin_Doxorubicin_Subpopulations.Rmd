@@ -287,8 +287,8 @@ WT_Cis_CisplatinDoxUntreated <- rbind(WT_CisplatinUntreated, Cis_CisplatinUntrea
 
 ## Get median and mad of untreared for each plate
 #WT
-WT_Med_Untreated_Plate <- WT_CisplatinUntreated %>% filter(Treatment == "untreated") %>% select(c("plate", datCols)) %>% group_by(plate) %>% summarise_at(datCols, median, na.rm = TRUE)
-WT_MAD_Untreated_Plate <- WT_CisplatinUntreated %>% filter(Treatment == "untreated") %>% select(c("plate", datCols)) %>% group_by(plate) %>% summarise_at(datCols, mad, na.rm = TRUE)
+WT_Med_Untreated_Plate <- WT_CisplatinUntreated %>% dplyr::filter(Treatment == "untreated") %>% dplyr::select(c("plate", datCols)) %>% group_by(plate) %>% summarise_at(datCols, median, na.rm = TRUE)
+WT_MAD_Untreated_Plate <- WT_CisplatinUntreated %>% dplyr::filter(Treatment == "untreated") %>% dplyr::select(c("plate", datCols)) %>% group_by(plate) %>% summarise_at(datCols, mad, na.rm = TRUE)
 
 WT_CisplatinUntreatedNrm <- data.frame()
 for (dx in unique(WT_CisplatinUntreated$plate)){
@@ -302,8 +302,8 @@ for (dx in unique(WT_CisplatinUntreated$plate)){
 }
 
 # Cis
-Cis_Med_Untreated_Plate <- Cis_CisplatinUntreated %>% filter(Treatment == "untreated") %>% select(c("plate", datCols)) %>% group_by(plate) %>% summarise_at(datCols, median, na.rm = TRUE)
-Cis_MAD_Untreated_Plate <- Cis_CisplatinUntreated %>% filter(Treatment == "untreated") %>% select(c("plate", datCols)) %>% group_by(plate) %>% summarise_at(datCols, mad, na.rm = TRUE)
+Cis_Med_Untreated_Plate <- Cis_CisplatinUntreated %>% dplyr::filter(Treatment == "untreated") %>% dplyr::select(c("plate", datCols)) %>% group_by(plate) %>% summarise_at(datCols, median, na.rm = TRUE)
+Cis_MAD_Untreated_Plate <- Cis_CisplatinUntreated %>% dplyr::filter(Treatment == "untreated") %>% dplyr::select(c("plate", datCols)) %>% group_by(plate) %>% summarise_at(datCols, mad, na.rm = TRUE)
 
 Cis_CisplatinUntreatedNrm <- data.frame()
 for (dx in unique(Cis_CisplatinUntreated$plate)){
@@ -386,31 +386,47 @@ WT_Cis_CisplatinDoxUntreatedNrm <- WT_Cis_CisplatinDoxUntreatedNrm[, c(metCols, 
 
 ## Correlations
 ```{r}
-WT_CorrelatedFeatures <- findCorrelatedFeatures(WT_CisplatinUntreatedNrm, datCols, corThres = 0.9)
+## Find correlated features
+WT_Cis_CorrelatedFeatures_IndNrm <- findCorrelatedFeatures(rbind(WT_CisplatinUntreatedNrm, Cis_CisplatinUntreatedNrm), datCols, corThres = 0.9)
+WT_Cis_CorrelatedFeatures_CmbNrm <- findCorrelatedFeatures(WT_Cis_CisplatinDoxUntreatedNrm, datCols, corThres = 0.9)
 
-Cis_CorrelatedFeatures <- findCorrelatedFeatures(Cis_CisplatinUntreatedNrm, datCols, corThres = 0.9)
+## Make dat column lists for the individually normalized and the combined normalized
+datColsInd <- datCols[(datCols %in% WT_Cis_CorrelatedFeatures_IndNrm)]
+datColsCmb <- datCols[(datCols %in% WT_Cis_CorrelatedFeatures_CmbNrm)]
 
-WT_Cis_CorrelatedFeatures <- names(Cis_CorrelatedFeatures)[names(Cis_CorrelatedFeatures) %in% names(WT_CorrelatedFeatures)]
+## Set the main arrays to contain only the non-correlated features
+WT_CisplatinUntreatedNrm <- WT_CisplatinUntreatedNrm[, c(metCols, datColsInd)]
+Cis_CisplatinUntreatedNrm <- Cis_CisplatinUntreatedNrm[, c(metCols, datColsInd)]
+WT_Cis_CisplatinDoxUntreatedNrm <- WT_Cis_CisplatinDoxUntreatedNrm[, c(metCols, datColsCmb)]
 
-datCols <- datCols[(datCols %in% WT_Cis_CorrelatedFeatures)]
-WT_CisplatinUntreatedNrm <- WT_CisplatinUntreatedNrm[, c(metCols, datCols)]
-Cis_CisplatinUntreatedNrm <- Cis_CisplatinUntreatedNrm[, c(metCols, datCols)]
-WT_Cis_CisplatinDoxUntreatedNrm <- WT_Cis_CisplatinDoxUntreatedNrm[, c(metCols, datCols)]
+# WT_CorrelatedFeatures <- findCorrelatedFeatures(WT_CisplatinUntreatedNrm, datCols, corThres = 0.9)
+# 
+# Cis_CorrelatedFeatures <- findCorrelatedFeatures(Cis_CisplatinUntreatedNrm, datCols, corThres = 0.9)
+# 
+# WT_Cis_CorrelatedFeatures <- names(Cis_CorrelatedFeatures)[names(Cis_CorrelatedFeatures) %in% names(WT_CorrelatedFeatures)]
+# 
+# datCols <- datCols[(datCols %in% WT_Cis_CorrelatedFeatures)]
+# WT_CisplatinUntreatedNrm <- WT_CisplatinUntreatedNrm[, c(metCols, datCols)]
+# Cis_CisplatinUntreatedNrm <- Cis_CisplatinUntreatedNrm[, c(metCols, datCols)]
+# WT_Cis_CisplatinDoxUntreatedNrm <- WT_Cis_CisplatinDoxUntreatedNrm[, c(metCols, datCols)]
+
+#WT_Cis_Ind_CorrelatedFeatures <- findCorrelatedFeatures(datCols)
+
 ```
 
 ## Get the well medians
 ```{r}
 
-WT_CisplatinUntreatedNrmMed <- WT_CisplatinUntreatedNrm %>% group_by(plate, Metadata_Well_nuc, Treatment, Dose, cell_line) %>% summarise_at(datCols, median)
+WT_CisplatinUntreatedNrmMed <- WT_CisplatinUntreatedNrm %>% group_by(plate, Metadata_Well_nuc, Treatment, Dose, cell_line) %>% summarise_at(datColsInd, median)
 
-Cis_CisplatinUntreatedNrmMed <- Cis_CisplatinUntreatedNrm %>% group_by(plate, Metadata_Well_nuc, Treatment, Dose, cell_line) %>% summarise_at(datCols, median)
+Cis_CisplatinUntreatedNrmMed <- Cis_CisplatinUntreatedNrm %>% group_by(plate, Metadata_Well_nuc, Treatment, Dose, cell_line) %>% summarise_at(datColsInd, median)
 
-WT_Cis_CisplatinDoxUntreatedNrmMed <- WT_Cis_CisplatinDoxUntreatedNrm %>% group_by(plate, Metadata_Well_nuc, Treatment, Dose, cell_line) %>% summarise_at(datCols, median)
+WT_Cis_CisplatinDoxUntreatedNrmMed <- WT_Cis_CisplatinDoxUntreatedNrm %>% group_by(plate, Metadata_Well_nuc, Treatment, Dose, cell_line) %>% summarise_at(datColsCmb, median)
 
 # Write normalized data to csv (cell level)
-write.csv(WT_CisplatinUntreatedNrm[!(WT_CisplatinUntreatedNrm$Treatment == "Doxorubicin"),], "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/NormalizedDataSets/WT_cells_WTNormed.csv")
-write.csv(Cis_CisplatinUntreatedNrm[!(Cis_CisplatinUntreatedNrm$Treatment == "Doxorubicin"),], "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/NormalizedDataSets/Cis_cells_WTNormed.csv")
-write.csv(WT_Cis_CisplatinUntreatedNrm[!(WT_Cis_CisplatinUntreatedNrm$Treatment == "Doxorubicin"),], "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/NormalizedDataSets/WTandCis_cells_WTandCisNormed.csv")
+# write.csv(WT_CisplatinUntreatedNrm[!(WT_CisplatinUntreatedNrm$Treatment == "Doxorubicin"),], "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/NormalizedDataSets/WT_cells_WTNormed.csv")
+# write.csv(Cis_CisplatinUntreatedNrm[!(Cis_CisplatinUntreatedNrm$Treatment == "Doxorubicin"),], "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/NormalizedDataSets/Cis_cells_WTNormed.csv")
+# write.csv(WT_Cis_CisplatinUntreatedNrm[!(WT_Cis_CisplatinUntreatedNrm$Treatment == "Doxorubicin"),], "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/NormalizedDataSets/WTandCis_cells_WTandCisNormed.csv")
 
 ```
 
@@ -462,25 +478,25 @@ WT_Cis_CisplatinDoxUntreatedNrmMed$Dose_IC50[Cis_Dox_Idx] <- log10(as.numeric(WT
 
 
 ## WT and Cisplatin normed
-WT_CisplatinUntreatedNrmMedPCA_IndividualNrm_IndividNrm <- prcomp(as.matrix(WT_Cis_CisplatinDoxUntreatedNrmMed[grepl('untreated|Cisplatin', WT_Cis_CisplatinDoxUntreatedNrmMed$Treatment), datCols]))
+WT_CisplatinUntreatedNrmMedPCA_CmbNrm <- prcomp(as.matrix(WT_Cis_CisplatinDoxUntreatedNrmMed[grepl('untreated|Cisplatin', WT_Cis_CisplatinDoxUntreatedNrmMed$Treatment), datColsCmb]))
 
-WT_CisplatinUntreatedNrmMedPCA_IndividualNrm_IndividNrmDf <- cbind(WT_Cis_CisplatinDoxUntreatedNrmMed[grepl('untreated|Cisplatin', WT_Cis_CisplatinDoxUntreatedNrmMed$Treatment),1:5], 
-                                          data.frame(PC1 = WT_CisplatinUntreatedNrmMedPCA_IndividualNrm_IndividNrm$x[,1], 
-                                                     PC2 = WT_CisplatinUntreatedNrmMedPCA_IndividualNrm_IndividNrm$x[,2], 
-                                                     PC3 = WT_CisplatinUntreatedNrmMedPCA_IndividualNrm_IndividNrm$x[,3]))
+WT_CisplatinUntreatedNrmMedPCA_CmbNrmDf <- cbind(WT_Cis_CisplatinDoxUntreatedNrmMed[grepl('untreated|Cisplatin', WT_Cis_CisplatinDoxUntreatedNrmMed$Treatment),1:5], 
+                                          data.frame(PC1 = WT_CisplatinUntreatedNrmMedPCA_CmbNrm$x[,1], 
+                                                     PC2 = WT_CisplatinUntreatedNrmMedPCA_CmbNrm$x[,2], 
+                                                     PC3 = WT_CisplatinUntreatedNrmMedPCA_CmbNrm$x[,3]))
 
-WT_CisplatinUntreatedNrmMedPCA_IndividualNrm_IndividNrmDf$Dose <- factor(as.numeric(WT_CisplatinUntreatedNrmMedPCA_IndividualNrm_IndividNrmDf$Dose), levels = sort(unique(as.numeric(WT_CisplatinUntreatedNrmMedPCA_IndividualNrm_IndividNrmDf$Dose))))
+WT_CisplatinUntreatedNrmMedPCA_CmbNrmDf$Dose <- factor(as.numeric(WT_CisplatinUntreatedNrmMedPCA_CmbNrmDf$Dose), levels = sort(unique(as.numeric(WT_CisplatinUntreatedNrmMedPCA_CmbNrmDf$Dose))))
 
-varExplained <- 100*WT_CisplatinUntreatedNrmMedPCA_IndividualNrm_IndividNrm$sdev^2/sum(WT_CisplatinUntreatedNrmMedPCA_IndividualNrm_IndividNrm$sdev^2)
+varExplained <- 100*WT_CisplatinUntreatedNrmMedPCA_CmbNrm$sdev^2/sum(WT_CisplatinUntreatedNrmMedPCA_CmbNrm$sdev^2)
 
-ggplot(WT_CisplatinUntreatedNrmMedPCA_IndividualNrm_IndividNrmDf, aes(x = PC1, y = PC2,  color = Dose, shape = cell_line, fill = cell_line)) + 
+ggplot(WT_CisplatinUntreatedNrmMedPCA_CmbNrmDf, aes(x = PC1, y = PC2,  color = Dose, shape = cell_line, fill = cell_line)) + 
     geom_point(size= 3) + xlab(paste("PC1: Variance Explained = ", round(varExplained[1], 2), "%")) + theme_bw() + scale_fill_manual(values = c("blue", "red")) +
                                ylab(paste("PC2: Variance Explained = ", round(varExplained[2], 1), "%")) + ggtitle("WT and Cis Normed Dose response")
 
 
 ## WT + Cis ========================================================================================== ##
 
-WT_Cis_CisplatinUntreatedNrmMedPCA_IndividNrm <- prcomp(as.matrix(rbind(WT_CisplatinUntreatedNrmMed[grepl("untreated|Cisplatin", WT_CisplatinUntreatedNrmMed$Treatment), datCols], Cis_CisplatinUntreatedNrmMed[grepl("untreated|Cisplatin", Cis_CisplatinUntreatedNrmMed$Treatment), datCols])))
+WT_Cis_CisplatinUntreatedNrmMedPCA_IndividNrm <- prcomp(as.matrix(rbind(WT_CisplatinUntreatedNrmMed[grepl("untreated|Cisplatin", WT_CisplatinUntreatedNrmMed$Treatment), datColsInd], Cis_CisplatinUntreatedNrmMed[grepl("untreated|Cisplatin", Cis_CisplatinUntreatedNrmMed$Treatment), datColsInd])))
 
 WT_Cis_CisplatinUntreatedNrmMedPCA_IndividNrmDf <- cbind(rbind(WT_CisplatinUntreatedNrmMed[grepl("untreated|Cisplatin", WT_CisplatinUntreatedNrmMed$Treatment), 1:5], Cis_CisplatinUntreatedNrmMed[grepl("untreated|Cisplatin",Cis_CisplatinUntreatedNrmMed$Treatment),1:5]), 
                                           data.frame(PC1 = WT_Cis_CisplatinUntreatedNrmMedPCA_IndividNrm$x[,1], 
@@ -506,28 +522,28 @@ library(Rtsne)
 smpN <- 1000 # number of cells from each treatment/dose
 
 ## Combined normalization
-WT_Cis_Cells_SepNorm <- WT_Cis_CisplatinDoxUntreatedNrm[which(!grepl("Doxorubicin", WT_Cis_CisplatinDoxUntreatedNrm$Treatment)), ] %>% group_by(Dose, cell_line) %>% slice_sample(n = smpN)
+WT_Cis_Cells_CmbNorm <- WT_Cis_CisplatinDoxUntreatedNrm[which(!grepl("Doxorubicin", WT_Cis_CisplatinDoxUntreatedNrm$Treatment)), ] %>% group_by(Dose, cell_line) %>% slice_sample(n = smpN)
 
-WT_Cis_CisplatinDoxUntreatedNrmSmpPCA <- prcomp(as.matrix(WT_Cis_CisplatinDoxUntreatedNrmSmp[, datCols]))
+WT_Cis_Cells_CmbNormPCA <- prcomp(as.matrix(WT_Cis_Cells_CmbNorm[, datColsCmb]))
 
-WT_Cis_CisplatinDoxUntreatedNrmSmpPCADf <- cbind(WT_Cis_CisplatinDoxUntreatedNrmSmp[,1:13], 
-                                          data.frame(PC1 = WT_Cis_CisplatinDoxUntreatedNrmSmpPCA$x[,1], 
-                                                     PC2 = WT_Cis_CisplatinDoxUntreatedNrmSmpPCA$x[,2], 
-                                                     PC3 = WT_Cis_CisplatinDoxUntreatedNrmSmpPCA$x[,3]))
+WT_Cis_Cells_CmbNormPCADf <- cbind(WT_Cis_Cells_CmbNorm[,1:13], 
+                                          data.frame(PC1 = WT_Cis_Cells_CmbNormPCA$x[,1], 
+                                                     PC2 = WT_Cis_Cells_CmbNormPCA$x[,2], 
+                                                     PC3 = WT_Cis_Cells_CmbNormPCA$x[,3]))
 
-WT_Cis_CisplatinDoxUntreatedNrmSmpPCADf$Dose <- factor(as.numeric(WT_Cis_CisplatinDoxUntreatedNrmSmpPCADf$Dose), levels = sort(unique(as.numeric(WT_Cis_CisplatinDoxUntreatedNrmSmpPCADf$Dose))))
+WT_Cis_Cells_CmbNormPCADf$Dose <- factor(as.numeric(WT_Cis_Cells_CmbNormPCADf$Dose), levels = sort(unique(as.numeric(WT_Cis_Cells_CmbNormPCADf$Dose))))
 
-varExplained <- 100*WT_Cis_CisplatinDoxUntreatedNrmSmpPCA$sdev^2/sum(WT_Cis_CisplatinDoxUntreatedNrmSmpPCA$sdev^2)
+varExplained <- 100*WT_Cis_Cells_CmbNormPCA$sdev^2/sum(WT_Cis_Cells_CmbNormPCA$sdev^2)
 
-ggplot(WT_Cis_CisplatinDoxUntreatedNrmSmpPCADf, aes(x = PC1, y = PC2,  color = Dose, shape = Treatment)) + 
+ggplot(WT_Cis_Cells_CmbNormPCADf, aes(x = PC1, y = PC2,  color = Dose, shape = Treatment)) + 
     geom_point(size= 2) + xlab(paste("PC1: Variance Explained = ", round(varExplained[1], 2), "%")) + theme_bw() +  xlim(-60, 110) + ylim(-100, 70) +
                                ylab(paste("PC2: Variance Explained = ", round(varExplained[2], 1), "%")) + ggtitle("WT+Cis combined Normalization") + guides(colour = guide_legend(override.aes = list(size=10)))
 
-ggplot(WT_Cis_CisplatinDoxUntreatedNrmSmpPCADf[WT_Cis_CisplatinDoxUntreatedNrmSmpPCADf$cell_line == "WT", ], aes(x = PC1, y = PC2,  color = Dose)) + 
+ggplot(WT_Cis_Cells_CmbNormPCADf[WT_Cis_Cells_CmbNormPCADf$cell_line == "WT", ], aes(x = PC1, y = PC2,  color = Dose)) + 
     geom_point(size= 2) + xlab(paste("PC1: Variance Explained = ", round(varExplained[1], 2), "%")) + theme_bw() + xlim(-60, 110) + ylim(-100, 70) +
                                ylab(paste("PC2: Variance Explained = ", round(varExplained[2], 1), "%")) + ggtitle("WT WT+Cis combined Normalization") + guides(colour = guide_legend(override.aes = list(size=10)))
 
-ggplot(WT_Cis_CisplatinDoxUntreatedNrmSmpPCADf[WT_Cis_CisplatinDoxUntreatedNrmSmpPCADf$cell_line == "Cis", ], aes(x = PC1, y = PC2,  color = Dose)) + 
+ggplot(WT_Cis_Cells_CmbNormPCADf[WT_Cis_Cells_CmbNormPCADf$cell_line == "Cis", ], aes(x = PC1, y = PC2,  color = Dose)) + 
     geom_point(size= 2) + xlab(paste("PC1: Variance Explained = ", round(varExplained[1], 2), "%")) + theme_bw() + xlim(-60, 110) + ylim(-100, 70) +
                                ylab(paste("PC2: Variance Explained = ", round(varExplained[2], 1), "%")) + ggtitle("Cis WT+Cis combined Normalization") + guides(colour = guide_legend(override.aes = list(size=10)))
 
@@ -536,7 +552,7 @@ WT_Cis_Cells_SepNorm <- rbind(WT_CisplatinUntreatedNrm[!grepl("Doxorubicin",WT_C
 
 WT_Cis_Cells_SepNormSmp <- WT_Cis_Cells_SepNorm[which(!grepl("Doxorubicin", WT_Cis_Cells_SepNorm$Treatment)), ] %>% group_by(Dose, cell_line) %>% slice_sample(n = smpN)
 
-WT_Cis_Cells_SepNormPCA <- prcomp(as.matrix(WT_Cis_Cells_SepNorm[, datCols]))
+WT_Cis_Cells_SepNormPCA <- prcomp(as.matrix(WT_Cis_Cells_SepNorm[, datColsInd]))
 
 WT_Cis_Cells_SepNormPCADf <- cbind(WT_Cis_Cells_SepNorm[,1:13], 
                                           data.frame(PC1 = WT_Cis_Cells_SepNormPCA$x[,1], 
@@ -572,69 +588,125 @@ ggplot(WT_Cis_Cells_SepNormPCADf[WT_Cis_Cells_SepNormPCADf$cell_line == "Cis",],
 
 ## Well level ============================================================================================= ##
 ## WT/Cis individual normalization ------------------------------------------------------------------------ ##
-well_ind_nrm_low_PC1 <- sort((WT_Cis_CisplatinUntreatedNrmMedPCA_IndividNrm$rotation[, 1]))[1:10]
-well_ind_nrm_high_PC1 <- sort((WT_Cis_CisplatinUntreatedNrmMedPCA_IndividNrm$rotation[, 1]), decreasing = TRUE)[1:10]
-
-well_ind_nrm_low_PC2 <- sort((WT_Cis_CisplatinUntreatedNrmMedPCA_IndividNrm$rotation[, 2]))[1:10]
-well_ind_nrm_high_PC2 <- sort((WT_Cis_CisplatinUntreatedNrmMedPCA_IndividNrm$rotation[, 2]), decreasing = TRUE)[1:10]
-
-well_ind_nrm_low_PC3 <- sort((WT_Cis_CisplatinUntreatedNrmMedPCA_IndividNrm$rotation[, 3]))[1:10]
-well_ind_nrm_high_PC3 <- sort((WT_Cis_CisplatinUntreatedNrmMedPCA_IndividNrm$rotation[, 3]), decreasing = TRUE)[1:10]
-
-### get the features which are correlated
-colnames(well_ind_nrm_low_PC1)
-
-## WT+Cis combined normalization -------------------------------------------------------------------------- ##
-
+# well_ind_nrm_low_PC1 <- sort((WT_Cis_CisplatinUntreatedNrmMedPCA_IndividNrm$rotation[, 1]))[1:10]
+# well_ind_nrm_high_PC1 <- sort((WT_Cis_CisplatinUntreatedNrmMedPCA_IndividNrm$rotation[, 1]), decreasing = TRUE)[1:10]
+# 
+# well_ind_nrm_low_PC2 <- sort((WT_Cis_CisplatinUntreatedNrmMedPCA_IndividNrm$rotation[, 2]))[1:10]
+# well_ind_nrm_high_PC2 <- sort((WT_Cis_CisplatinUntreatedNrmMedPCA_IndividNrm$rotation[, 2]), decreasing = TRUE)[1:10]
+# 
+# well_ind_nrm_low_PC3 <- sort((WT_Cis_CisplatinUntreatedNrmMedPCA_IndividNrm$rotation[, 3]))[1:10]
+# well_ind_nrm_high_PC3 <- sort((WT_Cis_CisplatinUntreatedNrmMedPCA_IndividNrm$rotation[, 3]), decreasing = TRUE)[1:10]
+# 
+# ### get the features which are correlated
+# correlatedFeaturesPC1_low_IndWell <- WT_Cis_CorrelatedFeatures_IndNrm[names(well_ind_nrm_low_PC1)]
+# correlatedFeaturesPC1_high_IndWell <- WT_Cis_CorrelatedFeatures_IndNrm[names(well_ind_nrm_high_PC1)]
+# 
+# correlatedFeaturesPC2_low_IndWell <- WT_Cis_CorrelatedFeatures_IndNrm[names(well_ind_nrm_low_PC2)]
+# correlatedFeaturesPC2_high_IndWell <- WT_Cis_CorrelatedFeatures_IndNrm[names(well_ind_nrm_high_PC2)]
+# 
+# correlatedFeaturesPC3_low_IndWell <- WT_Cis_CorrelatedFeatures_IndNrm[names(well_ind_nrm_low_PC3)]
+# correlatedFeaturesPC3_high_IndWell <- WT_Cis_CorrelatedFeatures_IndNrm[names(well_ind_nrm_high_PC3)]
+# 
+# ## WT+Cis combined normalization -------------------------------------------------------------------------- ##
+# 
+# well_cmb_nrm_low_PC1 <- sort((WT_CisplatinUntreatedNrmMedPCA_CmbNrm$rotation[, 1]))[1:10]
+# well_cmb_nrm_high_PC1 <- sort((WT_CisplatinUntreatedNrmMedPCA_CmbNrm$rotation[, 1]), decreasing = TRUE)[1:10]
+# 
+# well_cmb_nrm_low_PC2 <- sort((WT_CisplatinUntreatedNrmMedPCA_CmbNrm$rotation[, 2]))[1:10]
+# well_cmb_nrm_high_PC2 <- sort((WT_CisplatinUntreatedNrmMedPCA_CmbNrm$rotation[, 2]), decreasing = TRUE)[1:10]
+# 
+# well_cmb_nrm_low_PC3 <- sort((WT_CisplatinUntreatedNrmMedPCA_CmbNrm$rotation[, 3]))[1:10]
+# well_cmb_nrm_high_PC3 <- sort((WT_CisplatinUntreatedNrmMedPCA_CmbNrm$rotation[, 3]), decreasing = TRUE)[1:10]
+# 
+# ### get the features which are correlated
+# correlatedFeaturesPC1_low_cmbWell <- WT_Cis_CorrelatedFeatures_CmbNrm[names(well_cmb_nrm_low_PC1)]
+# correlatedFeaturesPC1_high_cmbWell <- WT_Cis_CorrelatedFeatures_CmbNrm[names(well_cmb_nrm_high_PC1)]
+# 
+# correlatedFeaturesPC2_low_cmbWell <- WT_Cis_CorrelatedFeatures_CmbNrm[names(well_cmb_nrm_low_PC2)]
+# correlatedFeaturesPC2_high_cmbWell <- WT_Cis_CorrelatedFeatures_CmbNrm[names(well_cmb_nrm_high_PC2)]
+# 
+# correlatedFeaturesPC3_low_cmbWell <- WT_Cis_CorrelatedFeatures_CmbNrm[names(well_cmb_nrm_low_PC3)]
+# correlatedFeaturesPC3_high_cmbWell <- WT_Cis_CorrelatedFeatures_CmbNrm[names(well_cmb_nrm_high_PC3)]
 
 ## Cell level ============================================================================================= ##
 ## WT/Cis individual normalization ------------------------------------------------------------------------ ##
+cell_ind_nrm_low_PC1 <- sort((WT_Cis_Cells_SepNormPCA$rotation[, 1]))[1:10]
+cell_ind_nrm_high_PC1 <- sort((WT_Cis_Cells_SepNormPCA$rotation[, 1]), decreasing = TRUE)[1:10]
+
+cell_ind_nrm_low_PC2 <- sort((WT_Cis_Cells_SepNormPCA$rotation[, 2]))[1:10]
+cell_ind_nrm_high_PC2 <- sort((WT_Cis_Cells_SepNormPCA$rotation[, 2]), decreasing = TRUE)[1:10]
+
+cell_ind_nrm_low_PC3 <- sort((WT_Cis_Cells_SepNormPCA$rotation[, 3]))[1:10]
+cell_ind_nrm_high_PC3 <- sort((WT_Cis_Cells_SepNormPCA$rotation[, 3]), decreasing = TRUE)[1:10]
+
+correlatedFeaturesPC1_low_Indcell <- WT_Cis_CorrelatedFeatures_IndNrm[names(cell_ind_nrm_low_PC1)]
+correlatedFeaturesPC1_high_Indcell <- WT_Cis_CorrelatedFeatures_IndNrm[names(cell_ind_nrm_high_PC1)]
+
+correlatedFeaturesPC2_low_Indcell <- WT_Cis_CorrelatedFeatures_IndNrm[names(cell_ind_nrm_low_PC2)]
+correlatedFeaturesPC2_high_Indcell <- WT_Cis_CorrelatedFeatures_IndNrm[names(cell_ind_nrm_high_PC2)]
+
+correlatedFeaturesPC3_low_Indcell <- WT_Cis_CorrelatedFeatures_IndNrm[names(cell_ind_nrm_low_PC3)]
+correlatedFeaturesPC3_high_Indcell <- WT_Cis_CorrelatedFeatures_IndNrm[names(cell_ind_nrm_high_PC3)]
+
+
+pcIndFeatures <- unique(c(names(correlatedFeaturesPC1_low_Indcell), names(correlatedFeaturesPC2_low_Indcell), names(correlatedFeaturesPC3_low_Indcell),
+                          names(correlatedFeaturesPC1_high_Indcell), names(correlatedFeaturesPC2_high_Indcell), names(correlatedFeaturesPC3_high_Indcell)))
+                          
 
 
 ## WT+Cis combined normalization -------------------------------------------------------------------------- ##
 
+cell_cmb_nrm_low_PC1 <- sort((WT_Cis_Cells_CmbNormPCA$rotation[, 1]))[1:10]
+cell_cmb_nrm_high_PC1 <- sort((WT_Cis_Cells_CmbNormPCA$rotation[, 1]), decreasing = TRUE)[1:10]
+
+cell_cmb_nrm_low_PC2 <- sort((WT_Cis_Cells_CmbNormPCA$rotation[, 2]))[1:10]
+cell_cmb_nrm_high_PC2 <- sort((WT_Cis_Cells_CmbNormPCA$rotation[, 2]), decreasing = TRUE)[1:10]
+
+cell_cmb_nrm_low_PC3 <- sort((WT_Cis_Cells_CmbNormPCA$rotation[, 3]))[1:10]
+cell_cmb_nrm_high_PC3 <- sort((WT_Cis_Cells_CmbNormPCA$rotation[, 3]), decreasing = TRUE)[1:10]
+
+correlatedFeaturesPC1_low_Cmbcell <- WT_Cis_CorrelatedFeatures_CmbNrm[names(cell_cmb_nrm_low_PC1)]
+correlatedFeaturesPC1_high_Cmbcell <- WT_Cis_CorrelatedFeatures_CmbNrm[names(cell_cmb_nrm_high_PC1)]
+
+correlatedFeaturesPC2_low_Cmbcell <- WT_Cis_CorrelatedFeatures_CmbNrm[names(cell_cmb_nrm_low_PC2)]
+correlatedFeaturesPC2_high_Cmbcell <- WT_Cis_CorrelatedFeatures_CmbNrm[names(cell_cmb_nrm_high_PC2)]
+
+correlatedFeaturesPC3_low_Cmbcell <- WT_Cis_CorrelatedFeatures_CmbNrm[names(cell_cmb_nrm_low_PC3)]
+correlatedFeaturesPC3_high_Cmbcell <- WT_Cis_CorrelatedFeatures_CmbNrm[names(cell_cmb_nrm_high_PC3)]
+
+pcCmbFeatures <- unique(c(names(correlatedFeaturesPC1_low_Cmbcell), names(correlatedFeaturesPC2_low_Cmbcell), names(correlatedFeaturesPC3_low_Cmbcell),
+                          names(correlatedFeaturesPC1_high_Cmbcell), names(correlatedFeaturesPC2_high_Cmbcell), names(correlatedFeaturesPC3_high_Cmbcell)))
+
 ```
 
-
-## SOM
+## SOM for top features
 ```{r}
-
-## SOM with each cell line normed individually =============================================================== ##
-WT_Cis_CisplatinUntreatedNrm <- rbind(WT_CisplatinUntreatedNrm, Cis_CisplatinUntreatedNrm)
-
+## Individual features ================================================================================================ ##
 set.seed(222)
 #g <- somgrid(xdim = 5, ydim = 5, topo = "rectangular")
 g <- somgrid(xdim = 6, ydim = 6, topo = "rectangular")
-WT_Cis_FiltParmamSOM36_NrmInd <- som(as.matrix(WT_Cis_CisplatinUntreatedNrm[, datCols]), grid = g)
+WT_Cis_SOM36_Ind_TpFt <- som(as.matrix(WT_Cis_Cells_SepNorm[, pcIndFeatures]), grid = g)
 
-plot(WT_Cis_FiltParmamSOM36_NrmInd, type='codes', palette.name = rainbow)
-plot(WT_Cis_FiltParmamSOM36_NrmInd, type = "mapping")
+plot(WT_Cis_SOM36_Ind_TpFt , type='codes', palette.name = rainbow)
+plot(WT_Cis_SOM36_Ind_TpFt , type = "mapping")
 
-SOM36_Values_NrmInd <- WT_Cis_FiltParmamSOM36_NrmInd$codes[[1]]
+SOM36_Values_NrmInd <- WT_Cis_SOM36_Ind_TpFt $codes[[1]]
 
-## SOM with each cell line normed combined =============================================================== ##
+## Combined features ================================================================================================ ##
 set.seed(222)
 #g <- somgrid(xdim = 5, ydim = 5, topo = "rectangular")
-#g <- somgrid(xdim = 6, ydim = 6, topo = "rectangular")
-WT_Cis_FiltParmamSOM36_NrmCmb <- som(as.matrix(WT_Cis_CisplatinDoxUntreatedNrm[, datCols]), grid = g)
+g <- somgrid(xdim = 6, ydim = 6, topo = "rectangular")
+WT_Cis_SOM36_Cmb_TpFt <- som(as.matrix(WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), pcCmbFeatures]), grid = g)
 
-plot(WT_Cis_FiltParmamSOM36_NrmCmb, type='codes', palette.name = rainbow)
-plot(WT_Cis_FiltParmamSOM36_NrmCmb, type = "mapping")
+plot(WT_Cis_SOM36_Cmb_TpFt , type='codes', palette.name = rainbow)
+plot(WT_Cis_SOM36_Cmb_TpFt , type = "mapping")
 
-SOM36_Values_NrmCmb <- WT_Cis_FiltParmamSOM36_NrmCmb$codes[[1]]
-
-#save(WT_Cis_FiltParmamSOM36_NrmInd, WT_Cis_FiltParmamSOM36_NrmCmb, WT_Cis_CisplatinUntreatedNrm, WT_Cis_CisplatinDoxUntreatedNrm, file = "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/RScripts_011122/SOM_Maps_NormedData_CisDOXUT.rdata")
+SOM36_Values_NrmCmb <- WT_Cis_SOM36_Cmb_TpFt $codes[[1]]
 ```
-
-## Load data if needed
+## Cluster results
 ```{r}
-# load("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/RScripts_011122/RData/SOM_Maps_NormedData_CisDOXUT.rdata")
-```
+## Individual normalisation
 
-
-## Clustering and final outputs for individuallly normed samples
-```{r}
-library(ConsensusClusterPlus)
 brkN <- 11
 colors <- colorRampPalette(c("blue", "white","red"))(brkN)
 breaks <- seq(-5, 5, length.out = brkN)
@@ -644,33 +716,119 @@ breaks <- seq(-5, 5, length.out = brkN)
 
 pheatmap(SOM36_Values_NrmInd, show_colnames =  FALSE, breaks = breaks, color = colors, clustering_distance_rows = "canberra", main = "canberra 15", cutree_rows = 15)
 
-## Make plots number of cells in clusters
-pltCellsInClusters(WT_Cis_CisplatinUntreatedNrm, SOM36_Values_NrmInd, WT_Cis_FiltParmamSOM36_NrmInd$unit.classif, metCols, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions_CisDOXUT/Plots_NrmInd/")
-  
+## Combined normalization 
+brkN <- 11
+colors <- colorRampPalette(c("blue", "white","red"))(brkN)
+breaks <- seq(-5, 5, length.out = brkN)
+
+# consensusClust36FiltParmNodeCanberra <-  ConsensusClusterPlus(t(SOM36_Values_NrmInd),maxK=20,reps=50,pItem=0.8,pFeature=1, title="36 Node clustering",clusterAlg="hc",
+#                                               seed=1262118388.71279, distance= "canberra", innerLinkage = "complete", finalLinkage = "complete")
+
+pheatmap(SOM36_Values_NrmCmb, show_colnames =  FALSE, breaks = breaks, color = colors, clustering_distance_rows = "canberra", main = "canberra 15", cutree_rows = 15)
+
+
+```
+
+## Write top PCs to images
+```{r}
+## Inidvidual norm
+
+
+## COmbined norm
+
+WT_Cis_CisplatinDoxUntreatedNrmNoDox <- WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ]
+
+ptchMet <- WT_Cis_CisplatinDoxUntreatedNrmNoDox[, metCols]
+ptchMet$FilenameCyto <- gsub("UV - DAPI","Green - dsRed" , WT_Cis_CisplatinDoxUntreatedNrm$FilenameDNA)
+#
+nucLocs <- rbind(WT_CisplatinUntreated_nucLocs, Cis_CisplatinUntreated_nucLocs)
+nucLocs2 <- dplyr::inner_join(ptchMet, nucLocs, by = c("FilenameDNA" = "FileName_DNA", "ObjectNumber_nuc" = "ObjectNumber_nuc"))
+
+## NrmInd
+
+makeImagePatches(ptchMet, WT_Cis_FiltParmamSOM36_NrmInd$unit.classif, nucLocs2,
+                 "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_topPC_Parameters/",
+                 prefix = "CmbNrm", smpN = 21, setSeed = TRUE, seed = 47)
+```
+
+
+
+
+## SOM
+```{r}
+
+## SOM with each cell line normed individually =============================================================== ##
+# WT_Cis_CisplatinUntreatedNrm <- rbind(WT_CisplatinUntreatedNrm, Cis_CisplatinUntreatedNrm)
+# 
+# set.seed(222)
+# #g <- somgrid(xdim = 5, ydim = 5, topo = "rectangular")
+# g <- somgrid(xdim = 6, ydim = 6, topo = "rectangular")
+# WT_Cis_FiltParmamSOM36_NrmInd <- som(as.matrix(WT_Cis_CisplatinUntreatedNrm[, datCols]), grid = g)
+# 
+# plot(WT_Cis_FiltParmamSOM36_NrmInd, type='codes', palette.name = rainbow)
+# plot(WT_Cis_FiltParmamSOM36_NrmInd, type = "mapping")
+# 
+# SOM36_Values_NrmInd <- WT_Cis_FiltParmamSOM36_NrmInd$codes[[1]]
+# 
+# ## SOM with each cell line normed combined =============================================================== ##
+# set.seed(222)
+# #g <- somgrid(xdim = 5, ydim = 5, topo = "rectangular")
+# #g <- somgrid(xdim = 6, ydim = 6, topo = "rectangular")
+# WT_Cis_FiltParmamSOM36_NrmCmb <- som(as.matrix(WT_Cis_CisplatinDoxUntreatedNrm[, datCols]), grid = g)
+# 
+# plot(WT_Cis_FiltParmamSOM36_NrmCmb, type='codes', palette.name = rainbow)
+# plot(WT_Cis_FiltParmamSOM36_NrmCmb, type = "mapping")
+# 
+# SOM36_Values_NrmCmb <- WT_Cis_FiltParmamSOM36_NrmCmb$codes[[1]]
+# 
+# #save(WT_Cis_FiltParmamSOM36_NrmInd, WT_Cis_FiltParmamSOM36_NrmCmb, WT_Cis_CisplatinUntreatedNrm, WT_Cis_CisplatinDoxUntreatedNrm, file = "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/RScripts_011122/SOM_Maps_NormedData_CisDOXUT.rdata")
+# ```
+# 
+# ## Load data if needed
+# ```{r}
+# # load("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/RScripts_011122/RData/SOM_Maps_NormedData_CisDOXUT.rdata")
+# ```
+# 
+# 
+# ## Clustering and final outputs for individuallly normed samples
+# ```{r}
+# library(ConsensusClusterPlus)
+# brkN <- 11
+# colors <- colorRampPalette(c("blue", "white","red"))(brkN)
+# breaks <- seq(-5, 5, length.out = brkN)
+# 
+# # consensusClust36FiltParmNodeCanberra <-  ConsensusClusterPlus(t(SOM36_Values_NrmInd),maxK=20,reps=50,pItem=0.8,pFeature=1, title="36 Node clustering",clusterAlg="hc",
+# #                                               seed=1262118388.71279, distance= "canberra", innerLinkage = "complete", finalLinkage = "complete")
+# 
+# pheatmap(SOM36_Values_NrmInd, show_colnames =  FALSE, breaks = breaks, color = colors, clustering_distance_rows = "canberra", main = "canberra 15", cutree_rows = 15)
+# 
+# ## Make plots number of cells in clusters
+# pltCellsInClusters(WT_Cis_CisplatinUntreatedNrm, SOM36_Values_NrmInd, WT_Cis_FiltParmamSOM36_NrmInd$unit.classif, metCols, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions_CisDOXUT/Plots_NrmInd/")
+#   
 ```
 
 ## Get plots for nrmCmb
 ```{r, fig.height=10}
-pheatmap(SOM36_Values_NrmCmb, show_colnames =  FALSE, breaks = breaks, color = colors, clustering_distance_rows = "canberra", main = "canberra 15", cutree_rows = 15)
-
-xxNrmCmb <- hclust(dist(SOM36_Values_NrmCmb, "canberra"))
-yyNrmCmb <- cutree(xx, k = 15)
-
-pheatmap(SOM36_Values_NrmInd, show_colnames =  FALSE, breaks = breaks, color = colors, clustering_distance_rows = "canberra", main = "canberra 15", cutree_rows = 15)
-
-xxNrmInd <- hclust(dist(SOM36_Values_NrmInd, "canberra"))
-yyNrmInd <- cutree(xx, k = 15)
+# pheatmap(SOM36_Values_NrmCmb, show_colnames =  FALSE, breaks = breaks, color = colors, clustering_distance_rows = "canberra", main = "canberra 15", cutree_rows = 15)
+# 
+# xxNrmCmb <- hclust(dist(SOM36_Values_NrmCmb, "canberra"))
+# yyNrmCmb <- cutree(xx, k = 15)
+# 
+# pheatmap(SOM36_Values_NrmInd, show_colnames =  FALSE, breaks = breaks, color = colors, clustering_distance_rows = "canberra", main = "canberra 15", cutree_rows = 15)
+# 
+# xxNrmInd <- hclust(dist(SOM36_Values_NrmInd, "canberra"))
+# yyNrmInd <- cutree(xx, k = 15)
 
 ```
 
 
 ## 
 ```{r}
-
-pltCellsInClusters(WT_Cis_CisplatinUntreatedNrm, SOM36_Values_NrmCmb, WT_Cis_FiltParmamSOM36_NrmCmb$unit.classif, metCols, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions_CisDOXUT/Plots_NrmCmb/")
-
-## Make plots number of cells in clusters
-pltCellsInClusters(WT_Cis_CisplatinUntreatedNrm, SOM36_Values_NrmInd, WT_Cis_FiltParmamSOM36_NrmInd$unit.classif, metCols, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions_CisDOXUT/Plots_NrmInd/")
+# 
+# pltCellsInClusters(WT_Cis_CisplatinUntreatedNrm, SOM36_Values_NrmCmb, WT_Cis_FiltParmamSOM36_NrmCmb$unit.classif, metCols, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions_CisDOXUT/Plots_NrmCmb/")
+# 
+# ## Make plots number of cells in clusters
+# pltCellsInClusters(WT_Cis_CisplatinUntreatedNrm, SOM36_Values_NrmInd, WT_Cis_FiltParmamSOM36_NrmInd$unit.classif, metCols, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions_CisDOXUT/Plots_NrmInd/")
 
 ```
 
@@ -695,20 +853,20 @@ pltCellsInClusters(WT_Cis_CisplatinUntreatedNrm, SOM36_Values_NrmInd, WT_Cis_Fil
 #                  prefix = "WT_CisDOx", smpN = 3, setSeed = TRUE, seed = 147)
 
 ##
-compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions_CisDOXUT/SOM_36_AllParNrmCmb/",
-                      "WT_CisDOx_", yyNrmCmb,
-                      "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions_CisDOXUT/SOM_36_AllParNrmCmb/compIms/")
-
-compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions_CisDOXUT/SOM_36_AllParNrmInd/", 
-                      "WT_Cis_16Bins_AreaShape_Radial16x1_", yyNrmInd, 
-                      "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions_CisDOXUT/SOM_36_AllParNrmInd/compIms/")
+# compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions_CisDOXUT/SOM_36_AllParNrmCmb/",
+#                       "WT_CisDOx_", yyNrmCmb,
+#                       "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions_CisDOXUT/SOM_36_AllParNrmCmb/compIms/")
+# 
+# compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions_CisDOXUT/SOM_36_AllParNrmInd/", 
+#                       "WT_Cis_16Bins_AreaShape_Radial16x1_", yyNrmInd, 
+#                       "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Predictions_CisDOXUT/SOM_36_AllParNrmInd/compIms/")
 ```
 
 ## Well locations of cell groups
 ```{r}
 
 ## Need cell locations and Cluster class
-nucLocs2$Metadata_Field <- (nucLocs2$FilenameDNA)
+# nucLocs2$Metadata_Field <- (nucLocs2$FilenameDNA)
 
 
 ```
