@@ -317,4 +317,84 @@ compPlotsFromClusters <- function(imagePth, imPrefix, clusters, outPth, numberOf
     }
 }
 
+## Theta mapping
+
+# Function to perfomr theta mapping based on Carragher 2016
+
+thetaMap <- function(){
+  
+  
+  
+}
+
+
+## MOFA related functions =============================================================================== ##
+summarizeLongFeat <- function(x){
+  
+  rownames(x) <- gsub("Granularity", "Grn", rownames(x))
+  rownames(x) <- gsub("RadialDistribution", "RD", rownames(x))
+  rownames(x) <- gsub("Texture", "Tx", rownames(x))
+  rownames(x) <- gsub("Correlation", "Cr", rownames(x))
+  rownames(x) <- gsub("InfoMeas", "InfM", rownames(x))
+  rownames(x) <- gsub("Granularity", "Grn", rownames(x))
+  rownames(x) <- gsub("CytoSkelCorr", "CySk", rownames(x))
+  rownames(x) <- gsub("Intensity", "Inty", rownames(x))
+  rownames(x) <- gsub("Difference", "Diff", rownames(x))
+  rownames(x) <- gsub("Mitochondria", "Mito", rownames(x))
+  rownames(x) <- gsub("AreaShape", "ArShp", rownames(x))
+  x
+  
+}
+
+## MAke cell paint MOFA objects
+
+makeCpMOFAOb <- function(cpDat){
+  
+  MOFADat <- list()
+  
+  # DNA parameters
+  MOFADat$DNA <- t((cpDat %>% select(matches("DNA_Corr")) %>% select(!matches("^Correlation")))[,-1:-2])
+  colnames(MOFADat$DNA) <- paste0("Cell", 1:nrow(cpDat))
+  MOFADat$DNA <- summarizeLongFeat(MOFADat$DNA)
+  
+  # Cytoskeleton parameters
+  MOFADat$Cyto <- t((cpDat %>% select(matches("CytoSkelCorr"))%>% select(!matches("^Correlation")))[,-1:-2])
+  colnames(MOFADat$Cyto) <- paste0("Cell", 1:nrow(cpDat))
+  MOFADat$Cyto <- summarizeLongFeat(MOFADat$Cyto)
+  
+  #rownames(MOFADat$Cyto) <- myFun(nrow(MOFADat$Cyto))
+  
+  # ER parameters 
+  MOFADat$ER <- t((cpDat %>% select(matches("_ER_"))%>% select(!matches("^Correlation")))[,-1:-2])
+  colnames(MOFADat$ER) <- paste0("Cell", 1:nrow(cpDat))
+  MOFADat$ER <- summarizeLongFeat(MOFADat$ER)
+  
+  # Mitochondria
+  MOFADat$Mito <- t((cpDat %>% select(matches("Mitochondria"))%>% select(!matches("^Correlation")))[,-1:-2])
+  colnames(MOFADat$Mito) <- paste0("Cell", 1:nrow(cpDat))
+  MOFADat$Mito <- summarizeLongFeat(MOFADat$Mito)
+  
+  # AreaShapeNeighbour parameters
+  MOFADat$AreaShape <- t((cpDat %>% select(matches("AreaShape"))%>% select(!matches("^Correlation")))[,-1:-2])
+  colnames(MOFADat$AreaShape) <- paste0("Cell", 1:nrow(cpDat))
+  MOFADat$AreaShape <- summarizeLongFeat(MOFADat$AreaShape)
+  
+  # Correlation parameters
+  MOFADat$Correlation <- t((cpDat %>% select(matches("^Correlation")))[,-1:-2])
+  colnames(MOFADat$Correlation) <- paste0("Cell", 1:nrow(cpDat))
+  MOFADat$Correlation <- summarizeLongFeat(MOFADat$Correlation)
+
+
+  ## Make the MOFA object...
+  
+  MOFAobject <- create_mofa(MOFADat)
+  
+  return(MOFAobject)
+  
+  
+}
+
+
+
+
 

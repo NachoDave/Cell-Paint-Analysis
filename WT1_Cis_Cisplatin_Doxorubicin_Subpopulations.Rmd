@@ -592,90 +592,53 @@ ggplot(WT_Cis_Cells_SepNormPCADf[WT_Cis_Cells_SepNormPCADf$cell_line == "Cis",],
 For MOFA analysis we'll set the cell paint features into different groups based on the organelle stained. Features that are not related to a particular stain (AreaShape, Nearest neighbours) will be put in their own group 
 ```{r}
 require(MOFA2)
- smpN_Mofa <- 100
-## Get the MOFA data sets
+set.seed(43)
+
+ smpN_Mofa <- 250
+## Get the MOFA data sets for all cells ---------------------------------------------- #
 WT_Cis_Cells_CmbNorm_MOFA <- WT_Cis_CisplatinDoxUntreatedNrm[which(!grepl("Doxorubicin", WT_Cis_CisplatinDoxUntreatedNrm$Treatment)), ] %>% group_by(Dose, cell_line) %>% slice_sample(n = smpN_Mofa)
+MOFAOb_WT_Cis <- makeCpMOFAOb(WT_Cis_Cells_CmbNorm_MOFA )
 
-WT_CisCmbsMOFADat <- list()
+## Get the MOFA data sets for all WT ---------------------------------------------- #
+WT_Cells_CmbNorm_MOFA <- WT_Cis_CisplatinDoxUntreatedNrm[which(!grepl("Doxorubicin", WT_Cis_CisplatinDoxUntreatedNrm$Treatment)), ] %>% filter(cell_line == "WT") %>% group_by(Dose) %>% slice_sample(n = 2*smpN_Mofa)
+MOFAOb_WT <- makeCpMOFAOb(WT_Cells_CmbNorm_MOFA )
 
-summarizeLongFeat <- function(x){
-  
-  rownames(x) <- gsub("Granularity", "Grn", rownames(x))
-  rownames(x) <- gsub("RadialDistribution", "RD", rownames(x))
-  rownames(x) <- gsub("Texture", "Tx", rownames(x))
-  rownames(x) <- gsub("Correlation", "Cr", rownames(x))
-  rownames(x) <- gsub("InfoMeas", "InfM", rownames(x))
-  rownames(x) <- gsub("Granularity", "Grn", rownames(x))
-   rownames(x) <- gsub("CytoSkelCorr", "CySk", rownames(x))
-   rownames(x) <- gsub("Intensity", "Inty", rownames(x))
-  rownames(x) <- gsub("Difference", "Diff", rownames(x))
-  rownames(x) <- gsub("Mitochondria", "Mito", rownames(x))
-  rownames(x) <- gsub("AreaShape", "ArShp", rownames(x))
-  x
-  
-}
 
-# DNA parameters
-WT_CisCmbsMOFADat$DNA <- t((WT_Cis_Cells_CmbNorm_MOFA %>% select(matches("DNA_Corr")) %>% select(!matches("^Correlation")))[,-1:-2])
-colnames(WT_CisCmbsMOFADat$DNA) <- paste0("Cell", 1:nrow(WT_Cis_Cells_CmbNorm_MOFA))
-WT_CisCmbsMOFADat$DNA <- summarizeLongFeat(WT_CisCmbsMOFADat$DNA)
-
-# Cytoskeleton parameters
-WT_CisCmbsMOFADat$Cyto <- t((WT_Cis_Cells_CmbNorm_MOFA %>% select(matches("CytoSkelCorr"))%>% select(!matches("^Correlation")))[,-1:-2])
-colnames(WT_CisCmbsMOFADat$Cyto) <- paste0("Cell", 1:nrow(WT_Cis_Cells_CmbNorm_MOFA))
-WT_CisCmbsMOFADat$Cyto <- summarizeLongFeat(WT_CisCmbsMOFADat$Cyto)
-
-#rownames(WT_CisCmbsMOFADat$Cyto) <- myFun(nrow(WT_CisCmbsMOFADat$Cyto))
-
-# ER parameters 
-WT_CisCmbsMOFADat$ER <- t((WT_Cis_Cells_CmbNorm_MOFA %>% select(matches("_ER_"))%>% select(!matches("^Correlation")))[,-1:-2])
-colnames(WT_CisCmbsMOFADat$ER) <- paste0("Cell", 1:nrow(WT_Cis_Cells_CmbNorm_MOFA))
-WT_CisCmbsMOFADat$ER <- summarizeLongFeat(WT_CisCmbsMOFADat$ER)
-
-# Mitochondria
-WT_CisCmbsMOFADat$Mito <- t((WT_Cis_Cells_CmbNorm_MOFA %>% select(matches("Mitochondria"))%>% select(!matches("^Correlation")))[,-1:-2])
-colnames(WT_CisCmbsMOFADat$Mito) <- paste0("Cell", 1:nrow(WT_Cis_Cells_CmbNorm_MOFA))
-WT_CisCmbsMOFADat$Mito <- summarizeLongFeat(WT_CisCmbsMOFADat$Mito)
-
-# AreaShapeNeighbour parameters
-WT_CisCmbsMOFADat$AreaShape <- t((WT_Cis_Cells_CmbNorm_MOFA %>% select(matches("AreaShape"))%>% select(!matches("^Correlation")))[,-1:-2])
-colnames(WT_CisCmbsMOFADat$AreaShape) <- paste0("Cell", 1:nrow(WT_Cis_Cells_CmbNorm_MOFA))
-WT_CisCmbsMOFADat$AreaShape <- summarizeLongFeat(WT_CisCmbsMOFADat$AreaShape)
-
-# Correlation parameters
-WT_CisCmbsMOFADat$Correlation <- t((WT_Cis_Cells_CmbNorm_MOFA %>% select(matches("^Correlation")))[,-1:-2])
-colnames(WT_CisCmbsMOFADat$Correlation) <- paste0("Cell", 1:nrow(WT_Cis_Cells_CmbNorm_MOFA))
-WT_CisCmbsMOFADat$Correlation <- summarizeLongFeat(WT_CisCmbsMOFADat$Correlation)
-
-# WT_CisCmbsMOFADat$ER <- t(WT_Cis_Cells_CmbNorm_MOFA %>% select(matches("ER_Corr")))[-1:-2,]
-# WT_CisCmbsMOFADat$Mito <- t(WT_Cis_Cells_CmbNorm_MOFA %>% select(matches("Mitochondria_Corr")))[-1:-2,]
-# WT_CisCmbsMOFADat$AreaShapeNeigh <- t(WT_Cis_Cells_CmbNorm_MOFA %>% select(matches("Neigh|AreaShape")))[-1:-2,]
-
-## Make the MOFA object...
-
-WT_CisCmbsMOFAobject <- create_mofa(WT_CisCmbsMOFADat)
-WT_CisCmbsMOFAobject
+## Get the MOFA data sets for all Cis ---------------------------------------------- #
+Cis_Cells_CmbNorm_MOFA <- WT_Cis_CisplatinDoxUntreatedNrm[which(!grepl("Doxorubicin", WT_Cis_CisplatinDoxUntreatedNrm$Treatment)), ] %>% filter(cell_line == "Cis") %>% group_by(Dose) %>% slice_sample(n = 2*smpN_Mofa)
+MOFAOb_Cis <- makeCpMOFAOb(Cis_Cells_CmbNorm_MOFA )
 
 ## Plot the MOFA object
-#plot_data_overview(WT_CisCmbsMOFAobject)
+plot_data_overview(MOFAOb_WT)
+plot_data_overview(MOFAOb_Cis)
+plot_data_overview(MOFAOb_WT_Cis)
 
 ## Make options
 
-model_opts <- get_default_model_options(WT_CisCmbsMOFAobject)
+model_opts_WTCis <- get_default_model_options(MOFAOb_WT_Cis)
 
-#model_opts$likelihoods["Mutations"] <- "bernoulli"
+model_opts_WT <- get_default_model_options(MOFAOb_WT)
 
-model_opts$num_factors <- 5
+model_opts_Cis <- get_default_model_options(MOFAOb_Cis)
 
-model_opts
 
 ## Prepare MOFA object
-# WT_CisCmbsMOFAobject <- prepare_mofa(WT_CisCmbsMOFAobject,
-#   model_options = model_opts
-# )
+MOFAOb_WT <- prepare_mofa(MOFAOb_WT,
+  model_options = model_opts_WT
+)
+
+MOFAOb_Cis <- prepare_mofa(MOFAOb_Cis,
+  model_options = model_opts_Cis
+)
+
+MOFAOb_WT_cis <- prepare_mofa(MOFAOb_WT_Cis,
+  model_options = model_opts_WTCis
+)
 
 ## Write mofa object to rds
-saveRDS(WT_CisCmbsMOFAobject, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/MOFA/cellPaintMOFA_071123.rds")
+saveRDS(MOFAOb_WT, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/MOFA/cellPaintMOFA_091123_WT.rds")
+saveRDS(MOFAOb_Cis, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/MOFA/cellPaintMOFA_091123_Cis.rds")
+saveRDS(MOFAOb_WT_Cis, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/MOFA/cellPaintMOFA_091123_WT_Cis.rds")
 
 
 ```
