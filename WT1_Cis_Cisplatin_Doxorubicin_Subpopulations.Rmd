@@ -631,7 +631,7 @@ MOFAOb_Cis <- prepare_mofa(MOFAOb_Cis,
   model_options = model_opts_Cis
 )
 
-MOFAOb_WT_cis <- prepare_mofa(MOFAOb_WT_Cis,
+MOFAOb_WT_Cis <- prepare_mofa(MOFAOb_WT_Cis,
   model_options = model_opts_WTCis
 )
 
@@ -642,34 +642,81 @@ saveRDS(MOFAOb_WT_Cis, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDose
 
 
 ```
-## Add the metadata
-```{r}
-WT_CisCmbsMOFA_meta <- cbind(data.frame(sample = paste0("Cell", 1:nrow(WT_Cis_Cells_CmbNorm_MOFA))),  WT_Cis_Cells_CmbNorm_MOFA[,metCols])
-samples_metadata(WT_CisCmbsMOFAobject_Trained) <- data.table(WT_CisCmbsMOFA_meta)
-```
-
-
 ## Get the MOFA objects
 ```{r}
-WT_CisCmbsMOFAobject_Trained <- readRDS("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/MOFA/cellPaintMOFA_071123_trained.rds")
+MOFAOb_WT_Trained <- readRDS("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/MOFA/cellPaintMOFA_091123_trained_WT.rds")
+MOFAOb_Cis_Trained <- readRDS("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/MOFA/cellPaintMOFA_091123_trained_Cis.rds")
+MOFAOb_WT_Cis_Trained <- readRDS("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/MOFA/cellPaintMOFA_091123_trained_WT_Cis.rds")
 
-plot_variance_explained(WT_CisCmbsMOFAobject_Trained, max_r2=20)
+plot_variance_explained(MOFAOb_WT_Trained, max_r2=20)
+plot_variance_explained(MOFAOb_Cis_Trained, max_r2=20)
+plot_variance_explained(MOFAOb_WT_Cis_Trained, max_r2=20)
 ```
+
+
+## Add the metadata
+```{r}
+WT_CmbsMOFA_meta <- cbind(data.frame(sample = paste0("Cell", 1:nrow(WT_Cells_CmbNorm_MOFA))),  WT_Cells_CmbNorm_MOFA[,metCols])
+WT_CmbsMOFA_meta$Dose <- as.numeric(WT_CmbsMOFA_meta$Dose)
+samples_metadata(MOFAOb_WT_Trained) <- data.table(WT_CmbsMOFA_meta)
+
+Cis_CmbsMOFA_meta <- cbind(data.frame(sample = paste0("Cell", 1:nrow(Cis_Cells_CmbNorm_MOFA))),  Cis_Cells_CmbNorm_MOFA[,metCols])
+Cis_CmbsMOFA_meta$Dose <- as.numeric(Cis_CmbsMOFA_meta$Dose)
+samples_metadata(MOFAOb_Cis_Trained) <- data.table(Cis_CmbsMOFA_meta)
+
+WT_CisCmbsMOFA_meta <- cbind(data.frame(sample = paste0("Cell", 1:nrow(WT_Cis_Cells_CmbNorm_MOFA))),  WT_Cis_Cells_CmbNorm_MOFA[,metCols])
+WT_CisCmbsMOFA_meta$Dose <- as.numeric(WT_CisCmbsMOFA_meta$Dose)
+WT_CisCmbsMOFA_meta$Cell_Dose <- paste(WT_CisCmbsMOFA_meta$cell_line, WT_CisCmbsMOFA_meta$Dose, sep = "_")
+
+WT_CisCmbsMOFA_meta$Cell_Dose <- factor(x = WT_CisCmbsMOFA_meta$Cell_Dose, levels = c(paste("WT",c(0, 500, 2000, 5000, 10000, 20000, 40000, 80000) , sep = "_"), paste("Cis",c(0, 500, 2000, 5000, 10000, 20000, 40000, 80000) , sep = "_")))
+
+samples_metadata(MOFAOb_WT_Cis_Trained) <- data.table(WT_CisCmbsMOFA_meta)
+```
+
 ## Correlate factors with covariates
 ```{r}
-correlate_factors_with_covariates(WT_CisCmbsMOFAobject_Trained, 
-  covariates = c("cell_line","Dose"), 
+correlate_factors_with_covariates(MOFAOb_WT_Trained, 
+  covariates = c("Dose", "plate"), 
+  plot = "log_pval", max_log_pval = 10
+  
+)
+
+correlate_factors_with_covariates(MOFAOb_Cis_Trained, 
+  covariates = c("Dose", "plate"), 
   plot = "log_pval"
   
 )
+
+correlate_factors_with_covariates(MOFAOb_WT_Cis_Trained, 
+  covariates = c("cell_line","Dose", "plate", "Cell_Dose"), 
+  plot = "log_pval"
+  
+)
+
+plot_factor_cor(MOFAOb_WT_Cis_Trained)
 ```
+
+## Plot facotrs together
+```{r, fig.width=18}
+
+plot_factors(MOFAOb_WT_Cis_Trained, 
+  factors = c(1,2), 
+  dot_size = 4.0, color_by = "Cell_Dose", shape_by = "cell_line"
+)
+
+plot_factors(MOFAOb_WT_Cis_Trained, 
+  factors = c(3,13), 
+  dot_size = 4.0, color_by = "Cell_Dose", shape_by = "cell_line"
+)
+```
+
 
 ## Factor loadings etc
 ```{r}
-plot_weights(WT_CisCmbsMOFAobject_Trained,
- view = "Cyto",
- factor = 7,
- nfeatures = 20,     # Top number of features to highlight
+plot_weights(MOFAOb_WT_Cis_Trained,
+ view = "AreaShape",
+ factor = 2,
+ nfeatures = 10,     # Top number of features to highlight
  scale = T           # Scale weights from -1 to 1
 )
 ```
