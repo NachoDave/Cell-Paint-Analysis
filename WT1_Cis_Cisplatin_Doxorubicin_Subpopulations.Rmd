@@ -151,6 +151,8 @@ WT_CisplatinUntreated <- rbind(P1_WT[grepl("untreated|Cisplatin|Doxorubicin", P1
                                P5_WT[grepl("untreated|Cisplatin|Doxorubicin", P5_WT$Treatment), ],
                                P9_WT[grepl("untreated|Cisplatin|Doxorubicin", P9_WT$Treatment), ])
 
+# write.csv(WT_CisplatinUntreated, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/WT_Raw_Data.csv")
+
 WT_CisplatinUntreated_nucLocs <- rbind(P1_WT_NucLocs[grepl("untreated|Cisplatin|Doxorubicin", P1_WT$Treatment), ],
                                P5_WT_NucLocs[grepl("untreated|Cisplatin|Doxorubicin", P5_WT$Treatment), ],
                                P9_WT_NucLocs[grepl("untreated|Cisplatin|Doxorubicin", P9_WT$Treatment), ]) 
@@ -159,6 +161,8 @@ WT_CisplatinUntreated_nucLocs <- rbind(P1_WT_NucLocs[grepl("untreated|Cisplatin|
 Cis_CisplatinUntreated <- rbind(P1_Cis[grepl("untreated|Cisplatin|Doxorubicin", P1_Cis$Treatment), ],
                                 P5_Cis[grepl("untreated|Cisplatin|Doxorubicin", P5_Cis$Treatment), ],
                                 P9_Cis[grepl("untreated|Cisplatin|Doxorubicin", P9_Cis$Treatment), ])
+
+# write.csv(Cis_CisplatinUntreated, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/Cis_Raw_Data.csv")
 
 Cis_CisplatinUntreated_nucLocs <- rbind(P1_Cis_NucLocs[grepl("untreated|Cisplatin|Doxorubicin", P1_Cis$Treatment), ],
                                 P5_Cis_NucLocs[grepl("untreated|Cisplatin|Doxorubicin", P5_Cis$Treatment), ],
@@ -583,6 +587,132 @@ ggplot(WT_Cis_Cells_SepNormPCADf[WT_Cis_Cells_SepNormPCADf$cell_line == "Cis",],
 
 ```
 
+## MOFA analysis
+
+For MOFA analysis we'll set the cell paint features into different groups based on the organelle stained. Features that are not related to a particular stain (AreaShape, Nearest neighbours) will be put in their own group 
+```{r}
+require(MOFA2)
+ smpN_Mofa <- 100
+## Get the MOFA data sets
+WT_Cis_Cells_CmbNorm_MOFA <- WT_Cis_CisplatinDoxUntreatedNrm[which(!grepl("Doxorubicin", WT_Cis_CisplatinDoxUntreatedNrm$Treatment)), ] %>% group_by(Dose, cell_line) %>% slice_sample(n = smpN_Mofa)
+
+WT_CisCmbsMOFADat <- list()
+
+summarizeLongFeat <- function(x){
+  
+  rownames(x) <- gsub("Granularity", "Grn", rownames(x))
+  rownames(x) <- gsub("RadialDistribution", "RD", rownames(x))
+  rownames(x) <- gsub("Texture", "Tx", rownames(x))
+  rownames(x) <- gsub("Correlation", "Cr", rownames(x))
+  rownames(x) <- gsub("InfoMeas", "InfM", rownames(x))
+  rownames(x) <- gsub("Granularity", "Grn", rownames(x))
+   rownames(x) <- gsub("CytoSkelCorr", "CySk", rownames(x))
+   rownames(x) <- gsub("Intensity", "Inty", rownames(x))
+  rownames(x) <- gsub("Difference", "Diff", rownames(x))
+  rownames(x) <- gsub("Mitochondria", "Mito", rownames(x))
+  rownames(x) <- gsub("AreaShape", "ArShp", rownames(x))
+  x
+  
+}
+
+# DNA parameters
+WT_CisCmbsMOFADat$DNA <- t((WT_Cis_Cells_CmbNorm_MOFA %>% select(matches("DNA_Corr")) %>% select(!matches("^Correlation")))[,-1:-2])
+colnames(WT_CisCmbsMOFADat$DNA) <- paste0("Cell", 1:nrow(WT_Cis_Cells_CmbNorm_MOFA))
+WT_CisCmbsMOFADat$DNA <- summarizeLongFeat(WT_CisCmbsMOFADat$DNA)
+
+# Cytoskeleton parameters
+WT_CisCmbsMOFADat$Cyto <- t((WT_Cis_Cells_CmbNorm_MOFA %>% select(matches("CytoSkelCorr"))%>% select(!matches("^Correlation")))[,-1:-2])
+colnames(WT_CisCmbsMOFADat$Cyto) <- paste0("Cell", 1:nrow(WT_Cis_Cells_CmbNorm_MOFA))
+WT_CisCmbsMOFADat$Cyto <- summarizeLongFeat(WT_CisCmbsMOFADat$Cyto)
+
+#rownames(WT_CisCmbsMOFADat$Cyto) <- myFun(nrow(WT_CisCmbsMOFADat$Cyto))
+
+# ER parameters 
+WT_CisCmbsMOFADat$ER <- t((WT_Cis_Cells_CmbNorm_MOFA %>% select(matches("_ER_"))%>% select(!matches("^Correlation")))[,-1:-2])
+colnames(WT_CisCmbsMOFADat$ER) <- paste0("Cell", 1:nrow(WT_Cis_Cells_CmbNorm_MOFA))
+WT_CisCmbsMOFADat$ER <- summarizeLongFeat(WT_CisCmbsMOFADat$ER)
+
+# Mitochondria
+WT_CisCmbsMOFADat$Mito <- t((WT_Cis_Cells_CmbNorm_MOFA %>% select(matches("Mitochondria"))%>% select(!matches("^Correlation")))[,-1:-2])
+colnames(WT_CisCmbsMOFADat$Mito) <- paste0("Cell", 1:nrow(WT_Cis_Cells_CmbNorm_MOFA))
+WT_CisCmbsMOFADat$Mito <- summarizeLongFeat(WT_CisCmbsMOFADat$Mito)
+
+# AreaShapeNeighbour parameters
+WT_CisCmbsMOFADat$AreaShape <- t((WT_Cis_Cells_CmbNorm_MOFA %>% select(matches("AreaShape"))%>% select(!matches("^Correlation")))[,-1:-2])
+colnames(WT_CisCmbsMOFADat$AreaShape) <- paste0("Cell", 1:nrow(WT_Cis_Cells_CmbNorm_MOFA))
+WT_CisCmbsMOFADat$AreaShape <- summarizeLongFeat(WT_CisCmbsMOFADat$AreaShape)
+
+# Correlation parameters
+WT_CisCmbsMOFADat$Correlation <- t((WT_Cis_Cells_CmbNorm_MOFA %>% select(matches("^Correlation")))[,-1:-2])
+colnames(WT_CisCmbsMOFADat$Correlation) <- paste0("Cell", 1:nrow(WT_Cis_Cells_CmbNorm_MOFA))
+WT_CisCmbsMOFADat$Correlation <- summarizeLongFeat(WT_CisCmbsMOFADat$Correlation)
+
+# WT_CisCmbsMOFADat$ER <- t(WT_Cis_Cells_CmbNorm_MOFA %>% select(matches("ER_Corr")))[-1:-2,]
+# WT_CisCmbsMOFADat$Mito <- t(WT_Cis_Cells_CmbNorm_MOFA %>% select(matches("Mitochondria_Corr")))[-1:-2,]
+# WT_CisCmbsMOFADat$AreaShapeNeigh <- t(WT_Cis_Cells_CmbNorm_MOFA %>% select(matches("Neigh|AreaShape")))[-1:-2,]
+
+## Make the MOFA object...
+
+WT_CisCmbsMOFAobject <- create_mofa(WT_CisCmbsMOFADat)
+WT_CisCmbsMOFAobject
+
+## Plot the MOFA object
+#plot_data_overview(WT_CisCmbsMOFAobject)
+
+## Make options
+
+model_opts <- get_default_model_options(WT_CisCmbsMOFAobject)
+
+#model_opts$likelihoods["Mutations"] <- "bernoulli"
+
+model_opts$num_factors <- 5
+
+model_opts
+
+## Prepare MOFA object
+# WT_CisCmbsMOFAobject <- prepare_mofa(WT_CisCmbsMOFAobject,
+#   model_options = model_opts
+# )
+
+## Write mofa object to rds
+saveRDS(WT_CisCmbsMOFAobject, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/MOFA/cellPaintMOFA_071123.rds")
+
+
+```
+## Add the metadata
+```{r}
+WT_CisCmbsMOFA_meta <- cbind(data.frame(sample = paste0("Cell", 1:nrow(WT_Cis_Cells_CmbNorm_MOFA))),  WT_Cis_Cells_CmbNorm_MOFA[,metCols])
+samples_metadata(WT_CisCmbsMOFAobject_Trained) <- data.table(WT_CisCmbsMOFA_meta)
+```
+
+
+## Get the MOFA objects
+```{r}
+WT_CisCmbsMOFAobject_Trained <- readRDS("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/MOFA/cellPaintMOFA_071123_trained.rds")
+
+plot_variance_explained(WT_CisCmbsMOFAobject_Trained, max_r2=20)
+```
+## Correlate factors with covariates
+```{r}
+correlate_factors_with_covariates(WT_CisCmbsMOFAobject_Trained, 
+  covariates = c("cell_line","Dose"), 
+  plot = "log_pval"
+  
+)
+```
+
+## Factor loadings etc
+```{r}
+plot_weights(WT_CisCmbsMOFAobject_Trained,
+ view = "Cyto",
+ factor = 7,
+ nfeatures = 20,     # Top number of features to highlight
+ scale = T           # Scale weights from -1 to 1
+)
+```
+
+
+
 ## Get the top parameters from the PCA (well levl and cell level)
 ```{r}
 
@@ -731,28 +861,71 @@ pheatmap(SOM36_Values_NrmCmb, show_colnames =  FALSE, breaks = breaks, color = c
 
 ## Write top PCs to images
 ```{r}
-## Inidvidual norm
+nucLocs <- rbind(WT_CisplatinUntreated_nucLocs, Cis_CisplatinUntreated_nucLocs)
 
+## Inidvidual norm ---------------------------------------------------------------------------------------------------------------------- ##
+# ptchMetInd <- WT_Cis_Cells_SepNorm[, metCols]
+# ptchMetInd$FilenameCyto <- gsub("UV - DAPI","Green - dsRed" , WT_Cis_Cells_SepNorm$FilenameDNA)
+# 
+# nucLocsInd <- dplyr::inner_join(ptchMetInd, nucLocs, by = c("FilenameDNA" = "FileName_DNA", "ObjectNumber_nuc" = "ObjectNumber_nuc"))
+# 
+# makeImagePatches(ptchMetInd, WT_Cis_SOM36_Ind_TpFt$unit.classif, nucLocsInd,
+#                  '/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_topPC_Parameters/IndNrm/',
+#                  prefix = 'IndNrm', smpN = 30, setSeed = TRUE, seed = 47)
 
-## COmbined norm
+## COmbined norm ---------------------------------------------------------------------------------------------------------------------- ##
 
 WT_Cis_CisplatinDoxUntreatedNrmNoDox <- WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ]
 
 ptchMet <- WT_Cis_CisplatinDoxUntreatedNrmNoDox[, metCols]
-ptchMet$FilenameCyto <- gsub("UV - DAPI","Green - dsRed" , WT_Cis_CisplatinDoxUntreatedNrm$FilenameDNA)
+ptchMet$FilenameCyto <- gsub("UV - DAPI","Green - dsRed" , WT_Cis_CisplatinDoxUntreatedNrmNoDox$FilenameDNA)
 #
-nucLocs <- rbind(WT_CisplatinUntreated_nucLocs, Cis_CisplatinUntreated_nucLocs)
+
 nucLocs2 <- dplyr::inner_join(ptchMet, nucLocs, by = c("FilenameDNA" = "FileName_DNA", "ObjectNumber_nuc" = "ObjectNumber_nuc"))
 
-## NrmInd
-
-makeImagePatches(ptchMet, WT_Cis_FiltParmamSOM36_NrmInd$unit.classif, nucLocs2,
-                 "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_topPC_Parameters/",
-                 prefix = "CmbNrm", smpN = 21, setSeed = TRUE, seed = 47)
+makeImagePatches(ptchMet, WT_Cis_SOM36_Cmb_TpFt$unit.classif, nucLocs2,
+                 "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_topPC_Parameters/CmbNrm/",
+                 prefix = "CmbNrm", smpN = 30, setSeed = TRUE, seed = 47)
 ```
 
+## Get the composite images and the cell distributions
+
+```{r}
+
+## Cluster SOM nodes
+xxNrmInd <- cutree(hclust(dist(SOM36_Values_NrmInd, "canberra")), k = 15)
+xxNrmCmb <- cutree(hclust(dist(SOM36_Values_NrmCmb, "canberra")), k = 15)
+
+## Plot the cluster composite images
+compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_topPC_Parameters/IndNrm/",
+                      "IndNrm_", xxNrmInd,
+                      "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_topPC_Parameters/IndNrm/CompositeImages/")
+
+compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_topPC_Parameters/CmbNrm/",
+                      "CmbNrm_", xxNrmCmb,
+                      "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_topPC_Parameters/CmbNrm/CompositeImages/")
+
+ pltCellsInClusters(WT_Cis_Cells_SepNorm, SOM36_Values_NrmInd, WT_Cis_SOM36_Ind_TpFt$unit.classif, metCols, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_topPC_Parameters/IndNrm/DoseDistributions//")
+ 
+  pltCellsInClusters(WT_Cis_CisplatinDoxUntreatedNrmNoDox, SOM36_Values_NrmCmb, WT_Cis_SOM36_Cmb_TpFt$unit.classif, metCols, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_topPC_Parameters/CmbNrm/DoseDistributions///")
+
+```
+
+## SOM with Principle components
+The individualy normed PCs are stored in variable: WT_Cis_Cells_IndNormPCA
+The combined normed PCs are stored in the variable: WT_Cis_Cells_SepNormPCA
+
+## SOM
+```{r}
+## Individually normed
 
 
+```
+
+## Hierachical clustering results
+```{r}
+
+```
 
 ## SOM
 ```{r}
