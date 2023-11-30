@@ -1,0 +1,503 @@
+---
+title: "Cell paint clusters Normed data"
+author: "David James"
+date: "16/11/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(data.table)
+library(ggplot2)
+library(reshape2)
+library(caret)
+library(kohonen)
+library(igraph)
+library(pheatmap)
+library(patchwork)
+source("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/RScripts_011122/cellPaintFunctions.r")
+source("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/RScripts_011122/cellPaintUnsupervisedFunctions.r")
+```
+
+## Read in nromed data
+
+```{r}
+load('/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/WT_Cis_UT_Cis_Dox_Normed.rdata')
+load("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/RScripts_011122/SOM_Results.rdata")
+load("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/RScripts_011122/NucLocs.rdata")
+
+datColsCmb <- colnames(WT_Cis_CisplatinDoxUntreatedNrm)[ 15:ncol(WT_Cis_CisplatinDoxUntreatedNrm)]
+metColsCmb <- colnames(WT_Cis_CisplatinDoxUntreatedNrm)[1:13]
+
+datColsInd <- colnames(WT_CisplatinUntreatedNrm)[ 15:ncol(WT_CisplatinUntreatedNrm)]
+metColsInd <- colnames(WT_CisplatinUntreatedNrm)[1:13]
+```
+
+# Dimensionaltiy reduction of single cells
+```{r, fig.width=15}
+set.seed(432)
+#library(Rtsne)
+
+## 
+smpN <- 1000 # number of cells from each treatment/dose
+
+## Combined normalization
+WT_Cis_Cells_CmbNorm <- WT_Cis_CisplatinDoxUntreatedNrm[which(!grepl("Doxorubicin", WT_Cis_CisplatinDoxUntreatedNrm$Treatment)), ] %>% group_by(Dose, cell_line) %>% slice_sample(n = smpN)
+
+WT_Cis_Cells_CmbNormPCA <- prcomp(as.matrix(WT_Cis_Cells_CmbNorm[, datColsCmb]), scale. = F)
+
+WT_Cis_Cells_CmbNormPCADf <- cbind(WT_Cis_Cells_CmbNorm[,1:13], 
+                                          data.frame(PC1 = WT_Cis_Cells_CmbNormPCA$x[,1], 
+                                                     PC2 = WT_Cis_Cells_CmbNormPCA$x[,2], 
+                                                     PC3 = WT_Cis_Cells_CmbNormPCA$x[,3]))
+
+WT_Cis_Cells_CmbNormPCADf$Dose <- factor(as.numeric(WT_Cis_Cells_CmbNormPCADf$Dose), levels = sort(unique(as.numeric(WT_Cis_Cells_CmbNormPCADf$Dose))))
+
+varExplained <- 100*WT_Cis_Cells_CmbNormPCA$sdev^2/sum(WT_Cis_Cells_CmbNormPCA$sdev^2)
+
+ggplot(WT_Cis_Cells_CmbNormPCADf, aes(x = PC1, y = PC2,  color = cell_line, shape = Treatment)) + 
+    geom_point(size= 2) + xlab(paste("PC1: Variance Explained = ", round(varExplained[1], 2), "%")) + theme_bw() +  xlim(-60, 110) + ylim(-100, 70) +
+                               ylab(paste("PC2: Variance Explained = ", round(varExplained[2], 1), "%")) + ggtitle("WT+Cis combined Normalization") + guides(colour = guide_legend(override.aes = list(size=10)))
+
+ggplot(WT_Cis_Cells_CmbNormPCADf[WT_Cis_Cells_CmbNormPCADf$cell_line == "WT", ], aes(x = PC1, y = PC2,  color = cell_line)) + 
+    geom_point(size= 2) + xlab(paste("PC1: Variance Explained = ", round(varExplained[1], 2), "%")) + theme_bw() + xlim(-60, 110) + ylim(-100, 70) +
+                               ylab(paste("PC2: Variance Explained = ", round(varExplained[2], 1), "%")) + ggtitle("WT WT+Cis combined Normalization") + guides(colour = guide_legend(override.aes = list(size=10)))
+
+ggplot(WT_Cis_Cells_CmbNormPCADf[WT_Cis_Cells_CmbNormPCADf$cell_line == "Cis", ], aes(x = PC1, y = PC2,  color = cell_line)) + 
+    geom_point(size= 2) + xlab(paste("PC1: Variance Explained = ", round(varExplained[1], 2), "%")) + theme_bw() + xlim(-60, 110) + ylim(-100, 70) +
+                               ylab(paste("PC2: Variance Explained = ", round(varExplained[2], 1), "%")) + ggtitle("Cis WT+Cis combined Normalization") + guides(colour = guide_legend(override.aes = list(size=10)))
+
+## Separate normalization
+# WT_Cis_Cells_SepNorm <- rbind(WT_CisplatinUntreatedNrm[!grepl("Doxorubicin",WT_CisplatinUntreatedNrm$Treatment),], Cis_CisplatinUntreatedNrm[!grepl("Doxorubicin",Cis_CisplatinUntreatedNrm$Treatment),]) 
+# 
+# WT_Cis_Cells_SepNormSmp <- WT_Cis_Cells_SepNorm[which(!grepl("Doxorubicin", WT_Cis_Cells_SepNorm$Treatment)), ] %>% group_by(Dose, cell_line) %>% slice_sample(n = smpN)
+# 
+# WT_Cis_Cells_SepNormPCA <- prcomp(as.matrix(WT_Cis_Cells_SepNorm[, datColsInd]), scale. = F)
+# 
+# WT_Cis_Cells_SepNormPCADf <- cbind(WT_Cis_Cells_SepNorm[,1:13], 
+#                                           data.frame(PC1 = WT_Cis_Cells_SepNormPCA$x[,1], 
+#                                                      PC2 = WT_Cis_Cells_SepNormPCA$x[,2], 
+#                                                      PC3 = WT_Cis_Cells_SepNormPCA$x[,3]))
+# 
+# WT_Cis_Cells_SepNormPCADf$Dose <- factor(as.numeric(WT_Cis_Cells_SepNormPCADf$Dose), levels = sort(unique(as.numeric(WT_Cis_Cells_SepNormPCADf$Dose))))
+# 
+# varExplained <- 100*WT_Cis_Cells_SepNormPCA$sdev^2/sum(WT_Cis_Cells_SepNormPCA$sdev^2)
+# 
+# # rm outliers
+# WT_Cis_Cells_SepNormPCADf <- WT_Cis_Cells_SepNormPCADf[WT_Cis_Cells_SepNormPCADf$PC1 > -100,]
+# 
+# ggplot(WT_Cis_Cells_SepNormPCADf, aes(x = PC1, y = PC2,  color = Dose, shape = Treatment)) + 
+#     geom_point(size= 2) + xlab(paste("PC1: Variance Explained = ", round(varExplained[1], 2), "%")) + theme_bw() + xlim(-100, 70) + ylim(-110, 100) +
+#                                ylab(paste("PC2: Variance Explained = ", round(varExplained[2], 1), "%")) + ggtitle("WT Cis seperate Normalization") + guides(colour = guide_legend(override.aes = list(size=10)))
+# 
+# 
+# ggplot(WT_Cis_Cells_SepNormPCADf[WT_Cis_Cells_SepNormPCADf$cell_line == "WT",], aes(x = PC1, y = PC2,  color = Dose)) + 
+#     geom_point(size= 2) + xlab(paste("PC1: Variance Explained = ", round(varExplained[1], 2), "%")) + theme_bw() +  xlim(-100, 70) + ylim(-110, 100) +
+#                                ylab(paste("PC2: Variance Explained = ", round(varExplained[2], 1), "%")) + ggtitle("WT only WT Cis seperate Normalization") + guides(colour = guide_legend(override.aes = list(size=10)))
+# 
+# ggplot(WT_Cis_Cells_SepNormPCADf[WT_Cis_Cells_SepNormPCADf$cell_line == "Cis",], aes(x = PC1, y = PC2,  color = Dose)) + 
+#     geom_point(size= 2) + xlab(paste("PC1: Variance Explained = ", round(varExplained[1], 2), "%")) + theme_bw() +  xlim(-100, 70) + ylim(-110, 100) +
+#                                ylab(paste("PC2: Variance Explained = ", round(varExplained[2], 1), "%")) + ggtitle("Cis only WT Cis seperate Normalization") + guides(colour = guide_legend(override.aes = list(size=10))) 
+
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## Make PCA derived datasets 
+```{r}
+# Get the top PCs
+pcN <- 11
+WT_Cis_Cmb_PCs <- cbind(WT_Cis_Cells_CmbNorm[,metColsCmb], WT_Cis_Cells_CmbNormPCA$x[, 1:pcN])
+
+# Get the top features in the PCs
+
+### get the features which are correlated
+## WT+Cis combined normalization -------------------------------------------------------------------------- ##
+
+cell_cmb_nrm_low_PC1 <- sort((WT_Cis_Cells_CmbNormPCA$rotation[, 1]))[1:10]
+cell_cmb_nrm_high_PC1 <- sort((WT_Cis_Cells_CmbNormPCA$rotation[, 1]), decreasing = TRUE)[1:10]
+
+cell_cmb_nrm_low_PC2 <- sort((WT_Cis_Cells_CmbNormPCA$rotation[, 2]))[1:10]
+cell_cmb_nrm_high_PC2 <- sort((WT_Cis_Cells_CmbNormPCA$rotation[, 2]), decreasing = TRUE)[1:10]
+
+cell_cmb_nrm_low_PC3 <- sort((WT_Cis_Cells_CmbNormPCA$rotation[, 3]))[1:10]
+cell_cmb_nrm_high_PC3 <- sort((WT_Cis_Cells_CmbNormPCA$rotation[, 3]), decreasing = TRUE)[1:10]
+
+correlatedFeaturesPC1_low_Cmbcell <- WT_Cis_CorrelatedFeatures_CmbNrm[names(cell_cmb_nrm_low_PC1)]
+correlatedFeaturesPC1_high_Cmbcell <- WT_Cis_CorrelatedFeatures_CmbNrm[names(cell_cmb_nrm_high_PC1)]
+
+correlatedFeaturesPC2_low_Cmbcell <- WT_Cis_CorrelatedFeatures_CmbNrm[names(cell_cmb_nrm_low_PC2)]
+correlatedFeaturesPC2_high_Cmbcell <- WT_Cis_CorrelatedFeatures_CmbNrm[names(cell_cmb_nrm_high_PC2)]
+
+correlatedFeaturesPC3_low_Cmbcell <- WT_Cis_CorrelatedFeatures_CmbNrm[names(cell_cmb_nrm_low_PC3)]
+correlatedFeaturesPC3_high_Cmbcell <- WT_Cis_CorrelatedFeatures_CmbNrm[names(cell_cmb_nrm_high_PC3)]
+
+pcCmbFeatures <- unique(c(names(correlatedFeaturesPC1_low_Cmbcell), names(correlatedFeaturesPC2_low_Cmbcell), names(correlatedFeaturesPC3_low_Cmbcell),
+                          names(correlatedFeaturesPC1_high_Cmbcell), names(correlatedFeaturesPC2_high_Cmbcell), names(correlatedFeaturesPC3_high_Cmbcell)))
+
+```
+
+
+## SOM datasets
+36 nodes
+```{r}
+## Top PCs
+wt_cis_cmb_SOM_top_pcs36 <- cell_paint_som(WT_Cis_Cmb_PCs, paste0("PC", 1:11),  xDim = 6, yDim = 6, seed = 42)
+wt_cis_cmb_SOM_top_pcs_codes36 <- wt_cis_cmb_SOM_top_pcs36$codes[[1]]
+
+## Top PC features 
+wt_cis_cmb_SOM_top_pc_features36 <- cell_paint_som(WT_Cis_CisplatinDoxUntreatedNrm, pcCmbFeatures,  xDim = 6, yDim = 6, seed = 42)
+wt_cis_cmb_SOM_top_pcs_features_codes36 <- wt_cis_cmb_SOM_top_pc_features36$codes[[1]]
+
+## Area shape
+wt_cis_cmb_SOM_AreaShape36 <- cell_paint_som(WT_Cis_CisplatinDoxUntreatedNrm, datColsCmb[grepl("AreaShape", datColsCmb)], xDim = 6, yDim = 6, seed = 42)
+wt_cis_cmb_SOM_AreaShape_codes36 <- wt_cis_cmb_SOM_AreaShape36$codes[[1]]
+
+## All features
+wt_cis_cmb_SOM_all_features36 <- cell_paint_som(WT_Cis_CisplatinDoxUntreatedNrm, datColsCmb, xDim = 6, yDim = 6, seed = 42)
+wt_cis_cmb_SOM_all_features_codes36 <- wt_cis_cmb_SOM_all_features36$codes[[1]]
+
+```
+
+25 nodes
+```{r}
+## Top PCs
+wt_cis_cmb_SOM_top_pcs25 <- cell_paint_som(WT_Cis_Cmb_PCs, paste0("PC", 1:11),  xDim = 5, yDim = 5, seed = 42)
+wt_cis_cmb_SOM_top_pcs_codes25 <- wt_cis_cmb_SOM_top_pcs25$codes[[1]]
+
+## Top PC features 
+wt_cis_cmb_SOM_top_pc_features25 <- cell_paint_som(WT_Cis_CisplatinDoxUntreatedNrm, pcCmbFeatures,  xDim = 5, yDim = 5, seed = 42)
+wt_cis_cmb_SOM_top_pcs_features_codes25 <- wt_cis_cmb_SOM_top_pc_features25$codes[[1]]
+
+## Area shape
+wt_cis_cmb_SOM_AreaShape25 <- cell_paint_som(WT_Cis_CisplatinDoxUntreatedNrm, datColsCmb[grepl("AreaShape", datColsCmb)], xDim = 5, yDim = 5, seed = 42)
+wt_cis_cmb_SOM_AreaShape_codes25 <- wt_cis_cmb_SOM_AreaShape25$codes[[1]]
+
+## All features
+wt_cis_cmb_SOM_all_features25 <- cell_paint_som(WT_Cis_CisplatinDoxUntreatedNrm, datColsCmb, xDim = 5, yDim = 5, seed = 42)
+wt_cis_cmb_SOM_all_features_codes25 <- wt_cis_cmb_SOM_all_features25$codes[[1]]
+
+```
+
+
+16 nodes
+```{r}
+## Top PCs
+wt_cis_cmb_SOM_top_pcs16 <- cell_paint_som(WT_Cis_Cmb_PCs, paste0("PC", 1:11),  xDim = 4, yDim = 4, seed = 42)
+wt_cis_cmb_SOM_top_pcs_codes16 <- wt_cis_cmb_SOM_top_pcs16$codes[[1]]
+
+## Top PC features 
+wt_cis_cmb_SOM_top_pc_features16 <- cell_paint_som(WT_Cis_CisplatinDoxUntreatedNrm, pcCmbFeatures,  xDim = 4, yDim = 4, seed = 42)
+wt_cis_cmb_SOM_top_pcs_features_codes16 <- wt_cis_cmb_SOM_top_pc_features16$codes[[1]]
+
+## Area shape
+wt_cis_cmb_SOM_AreaShape16 <- cell_paint_som(WT_Cis_CisplatinDoxUntreatedNrm, datColsCmb[grepl("AreaShape", datColsCmb)], xDim = 4, yDim = 4, seed = 42)
+wt_cis_cmb_SOM_AreaShape_codes16 <- wt_cis_cmb_SOM_AreaShape16$codes[[1]]
+
+## All features
+wt_cis_cmb_SOM_all_features16 <- cell_paint_som(WT_Cis_CisplatinDoxUntreatedNrm, datColsCmb, xDim = 4, yDim = 4, seed = 42)
+wt_cis_cmb_SOM_all_features_codes16 <- wt_cis_cmb_SOM_all_features16$codes[[1]]
+
+```
+
+## Save SOM results
+```{r}
+# save(wt_cis_cmb_SOM_top_pcs36, wt_cis_cmb_SOM_top_pc_features36, wt_cis_cmb_SOM_AreaShape36, wt_cis_cmb_SOM_all_features36,  
+#      wt_cis_cmb_SOM_top_pcs25, wt_cis_cmb_SOM_top_pc_features25, wt_cis_cmb_SOM_AreaShape25, wt_cis_cmb_SOM_all_features25,
+#      wt_cis_cmb_SOM_top_pcs16, wt_cis_cmb_SOM_top_pc_features16, wt_cis_cmb_SOM_AreaShape16, wt_cis_cmb_SOM_all_features16,
+#      file = "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/RScripts_011122/SOM_Results.rdata")
+```
+
+
+## Make cluster images
+Prepare inputs for making image pathches
+```{r}
+## Meta data
+meta_dat_all_cells <- WT_Cis_CisplatinDoxUntreatedNrm[, metColsCmb]
+meta_dat_all_cells$FilenameCyto <- gsub("UV - DAPI","Green - dsRed" , meta_dat_all_cells$FilenameDNA)
+
+meta_dat_PC_selection <- WT_Cis_Cells_CmbNorm[, metColsCmb]
+meta_dat_PC_selection$FilenameCyto <- gsub("UV - DAPI","Green - dsRed" , meta_dat_PC_selection$FilenameDNA)
+
+## Nucleus locations
+nucLocs_all_cells <- dplyr::inner_join(meta_dat_all_cells, nucLocs, by = c("FilenameDNA" = "FileName_DNA", "ObjectNumber_nuc" = "ObjectNumber_nuc"))
+nucLocs_PC_selection <- dplyr::inner_join(meta_dat_PC_selection, nucLocs, by = c("FilenameDNA" = "FileName_DNA", "ObjectNumber_nuc" = "ObjectNumber_nuc"))
+```
+
+
+36 nodes
+```{r}
+## Top PCs ===================================================================================================================================================================== ##
+# Make Image patches
+makeImagePatches(data.frame(meta_dat_PC_selection), wt_cis_cmb_SOM_top_pcs36$unit.classif, data.frame(nucLocs_PC_selection),
+                 "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_PCs/36_node/",
+                 prefix = "TopPCs_36", smpN = 12, setSeed = TRUE, seed = 47)
+
+# Get the percentage of cells in each 
+pltCellsInClusters(WT_Cis_Cells_CmbNorm, wt_cis_cmb_SOM_top_pcs36$codes[[1]], wt_cis_cmb_SOM_top_pcs36$unit.classif, metColsCmb, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_PCs/36_node/", k = 16)
+
+#  Plot the cluster composite images
+hier_clst_top_pcs_36 <- cutree(hclust(dist(wt_cis_cmb_SOM_top_pcs_codes36, "canberra")), k = 16)
+
+compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_PCs/36_node/",
+                      "TopPCs_36_", hier_clst_top_pcs_36,
+                      "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_PCs/36_node/",
+                      numberOfImagesFromEachSom = 2)
+
+## Top PC features ===================================================================================================================================================================== ##
+# Make Image patches
+  makeImagePatches(data.frame(meta_dat_all_cells), wt_cis_cmb_SOM_top_pc_features36$unit.classif, data.frame(nucLocs_all_cells),
+                 "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_features_from_PCs/36_node/",
+                 prefix = "TopPC_feats_36", smpN = 12, setSeed = TRUE, seed = 47)
+
+# Get the percentage of cells in each 
+pltCellsInClusters(WT_Cis_CisplatinDoxUntreatedNrm, wt_cis_cmb_SOM_top_pc_features36$codes[[1]], wt_cis_cmb_SOM_top_pc_features36$unit.classif, metColsCmb, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_features_from_PCs/36_node/", k = 16)
+
+#  Plot the cluster composite images
+hier_clst_top_pc_features_36 <- cutree(hclust(dist(wt_cis_cmb_SOM_top_pc_features36$codes[[1]], "canberra")), k = 16)
+
+compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_features_from_PCs/36_node/",
+                      "TopPC_feats_36_", hier_clst_top_pc_features_36,
+                      "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_features_from_PCs/36_node/",
+                      numberOfImagesFromEachSom = 2)
+
+## Area Shape ===================================================================================================================================================================== ##
+# Make Image patches
+  makeImagePatches(data.frame(meta_dat_all_cells), wt_cis_cmb_SOM_AreaShape36$unit.classif, data.frame(nucLocs_all_cells),
+                 "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/areashape_features/36_node/",
+                 prefix = "AreaShape_36", smpN = 12, setSeed = TRUE, seed = 47)
+
+# Get the percentage of cells in each 
+pltCellsInClusters(WT_Cis_CisplatinDoxUntreatedNrm, wt_cis_cmb_SOM_AreaShape36$codes[[1]], wt_cis_cmb_SOM_AreaShape36$unit.classif, metColsCmb, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/areashape_features/36_node/", k = 16)
+
+#  Plot the cluster composite images
+hier_clst_AreaShape_36 <- cutree(hclust(dist(wt_cis_cmb_SOM_AreaShape36$codes[[1]], "canberra")), k = 16)
+
+compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/areashape_features/36_node/",
+                      "AreaShape_36_", hier_clst_AreaShape_36,
+                      "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/areashape_features/36_node/",
+                      numberOfImagesFromEachSom = 2)
+
+## All features ===================================================================================================================================================================== ##
+# Make Image patches
+  makeImagePatches(data.frame(meta_dat_all_cells), wt_cis_cmb_SOM_all_features36$unit.classif, data.frame(nucLocs_all_cells),
+                 "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/all_features//36_node/",
+                 prefix = "All_features_36", smpN = 12, setSeed = TRUE, seed = 47)
+
+# Get the percentage of cells in each 
+pltCellsInClusters(WT_Cis_CisplatinDoxUntreatedNrm, wt_cis_cmb_SOM_all_features36$codes[[1]], wt_cis_cmb_SOM_all_features36$unit.classif, metColsCmb, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/all_features//36_node/", k = 16)
+
+#  Plot the cluster composite images
+hier_clst_all_features_36 <- cutree(hclust(dist(wt_cis_cmb_SOM_all_features36$codes[[1]], "canberra")), k = 16)
+
+compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/all_features//36_node/",
+                      "All_features_36_", hier_clst_all_features_36,
+                      "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/all_features//36_node/",
+                      numberOfImagesFromEachSom = 2)
+```
+
+25 nodes
+```{r}
+## Top PCs ===================================================================================================================================================================== ##
+# Make Image patches
+makeImagePatches(data.frame(meta_dat_PC_selection), wt_cis_cmb_SOM_top_pcs25$unit.classif, data.frame(nucLocs_PC_selection),
+                 "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_PCs/25_node/",
+                 prefix = "TopPCs_25", smpN = 12, setSeed = TRUE, seed = 47)
+
+# Get the percentage of cells in each 
+pltCellsInClusters(WT_Cis_Cells_CmbNorm, wt_cis_cmb_SOM_top_pcs25$codes[[1]], wt_cis_cmb_SOM_top_pcs25$unit.classif, metColsCmb, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_PCs/25_node/", k = 16)
+
+#  Plot the cluster composite images
+hier_clst_top_pcs_25 <- cutree(hclust(dist(wt_cis_cmb_SOM_top_pcs_codes25, "canberra")), k = 16)
+
+compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_PCs/25_node/",
+                      "TopPCs_25_", hier_clst_top_pcs_25,
+                      "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_PCs/25_node/",
+                      numberOfImagesFromEachSom = 2)
+
+## Top PC features ===================================================================================================================================================================== ##
+# Make Image patches
+  makeImagePatches(data.frame(meta_dat_all_cells), wt_cis_cmb_SOM_top_pc_features25$unit.classif, data.frame(nucLocs_all_cells),
+                 "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_features_from_PCs/25_node/",
+                 prefix = "TopPC_feats_25", smpN = 12, setSeed = TRUE, seed = 47)
+
+# Get the percentage of cells in each 
+pltCellsInClusters(WT_Cis_CisplatinDoxUntreatedNrm, wt_cis_cmb_SOM_top_pc_features25$codes[[1]], wt_cis_cmb_SOM_top_pc_features25$unit.classif, metColsCmb, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_features_from_PCs/25_node/", k = 16)
+
+#  Plot the cluster composite images
+hier_clst_top_pc_features_25 <- cutree(hclust(dist(wt_cis_cmb_SOM_top_pc_features25$codes[[1]], "canberra")), k = 16)
+
+compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_features_from_PCs/25_node/",
+                      "TopPC_feats_25_", hier_clst_top_pc_features_25,
+                      "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_features_from_PCs/25_node/",
+                      numberOfImagesFromEachSom = 2)
+
+## Area Shape ===================================================================================================================================================================== ##
+# Make Image patches
+  makeImagePatches(data.frame(meta_dat_all_cells), wt_cis_cmb_SOM_AreaShape25$unit.classif, data.frame(nucLocs_all_cells),
+                 "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/areashape_features/25_node/",
+                 prefix = "AreaShape_25", smpN = 12, setSeed = TRUE, seed = 47)
+
+# Get the percentage of cells in each 
+pltCellsInClusters(WT_Cis_CisplatinDoxUntreatedNrm, wt_cis_cmb_SOM_AreaShape25$codes[[1]], wt_cis_cmb_SOM_AreaShape25$unit.classif, metColsCmb, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/areashape_features/25_node/", k = 16)
+
+#  Plot the cluster composite images
+hier_clst_AreaShape_25 <- cutree(hclust(dist(wt_cis_cmb_SOM_AreaShape25$codes[[1]], "canberra")), k = 16)
+
+compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/areashape_features/25_node/",
+                      "AreaShape_25_", hier_clst_AreaShape_25,
+                      "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/areashape_features/25_node/",
+                      numberOfImagesFromEachSom = 2)
+
+## All features ===================================================================================================================================================================== ##
+# Make Image patches
+  makeImagePatches(data.frame(meta_dat_all_cells), wt_cis_cmb_SOM_all_features25$unit.classif, data.frame(nucLocs_all_cells),
+                 "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/all_features//25_node/",
+                 prefix = "All_features_25", smpN = 12, setSeed = TRUE, seed = 47)
+
+# Get the percentage of cells in each 
+pltCellsInClusters(WT_Cis_CisplatinDoxUntreatedNrm, wt_cis_cmb_SOM_all_features25$codes[[1]], wt_cis_cmb_SOM_all_features25$unit.classif, metColsCmb, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/all_features//25_node/", k = 16)
+
+#  Plot the cluster composite images
+hier_clst_all_features_25 <- cutree(hclust(dist(wt_cis_cmb_SOM_all_features25$codes[[1]], "canberra")), k = 16)
+
+compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/all_features//25_node/",
+                      "All_features_25_", hier_clst_all_features_25,
+                      "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/all_features//25_node/",
+                      numberOfImagesFromEachSom = 2)
+```
+
+16 nodes
+```{r}
+## Top PCs ===================================================================================================================================================================== ##
+# Make Image patches
+makeImagePatches(data.frame(meta_dat_PC_selection), wt_cis_cmb_SOM_top_pcs16$unit.classif, data.frame(nucLocs_PC_selection),
+                 "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_PCs/16_node/",
+                 prefix = "TopPCs_16", smpN = 12, setSeed = TRUE, seed = 47)
+
+# Get the percentage of cells in each 
+pltCellsInClusters(WT_Cis_Cells_CmbNorm, wt_cis_cmb_SOM_top_pcs16$codes[[1]], wt_cis_cmb_SOM_top_pcs16$unit.classif, metColsCmb, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_PCs/16_node/", k = 16)
+
+#  Plot the cluster composite images
+hier_clst_top_pcs_16 <- cutree(hclust(dist(wt_cis_cmb_SOM_top_pcs_codes16, "canberra")), k = 16)
+
+compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_PCs/16_node/",
+                      "TopPCs_16_", hier_clst_top_pcs_16,
+                      "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_PCs/16_node/",
+                      numberOfImagesFromEachSom = 2)
+
+## Top PC features ===================================================================================================================================================================== ##
+# Make Image patches
+  makeImagePatches(data.frame(meta_dat_all_cells), wt_cis_cmb_SOM_top_pc_features16$unit.classif, data.frame(nucLocs_all_cells),
+                 "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_features_from_PCs/16_node/",
+                 prefix = "TopPC_feats_16", smpN = 12, setSeed = TRUE, seed = 47)
+
+# Get the percentage of cells in each 
+pltCellsInClusters(WT_Cis_CisplatinDoxUntreatedNrm, wt_cis_cmb_SOM_top_pc_features16$codes[[1]], wt_cis_cmb_SOM_top_pc_features16$unit.classif, metColsCmb, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_features_from_PCs/16_node/", k = 16)
+
+#  Plot the cluster composite images
+hier_clst_top_pc_features_16 <- cutree(hclust(dist(wt_cis_cmb_SOM_top_pc_features16$codes[[1]], "canberra")), k = 16)
+
+compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_features_from_PCs/16_node/",
+                      "TopPC_feats_16_", hier_clst_top_pc_features_16,
+                      "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/top_features_from_PCs/16_node/",
+                      numberOfImagesFromEachSom = 2)
+
+## Area Shape ===================================================================================================================================================================== ##
+# Make Image patches
+  makeImagePatches(data.frame(meta_dat_all_cells), wt_cis_cmb_SOM_AreaShape16$unit.classif, data.frame(nucLocs_all_cells),
+                 "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/areashape_features/16_node/",
+                 prefix = "AreaShape_16", smpN = 12, setSeed = TRUE, seed = 47)
+
+# Get the percentage of cells in each 
+pltCellsInClusters(WT_Cis_CisplatinDoxUntreatedNrm, wt_cis_cmb_SOM_AreaShape16$codes[[1]], wt_cis_cmb_SOM_AreaShape16$unit.classif, metColsCmb, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/areashape_features/16_node/", k = 16)
+
+#  Plot the cluster composite images
+hier_clst_AreaShape_16 <- cutree(hclust(dist(wt_cis_cmb_SOM_AreaShape16$codes[[1]], "canberra")), k = 16)
+
+compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/areashape_features/16_node/",
+                      "AreaShape_16_", hier_clst_AreaShape_16,
+                      "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/areashape_features/16_node/",
+                      numberOfImagesFromEachSom = 2)
+
+## All features ===================================================================================================================================================================== ##
+# Make Image patches
+  makeImagePatches(data.frame(meta_dat_all_cells), wt_cis_cmb_SOM_all_features16$unit.classif, data.frame(nucLocs_all_cells),
+                 "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/all_features//16_node/",
+                 prefix = "All_features_16", smpN = 12, setSeed = TRUE, seed = 47)
+
+# Get the percentage of cells in each 
+pltCellsInClusters(WT_Cis_CisplatinDoxUntreatedNrm, wt_cis_cmb_SOM_all_features16$codes[[1]], wt_cis_cmb_SOM_all_features16$unit.classif, metColsCmb, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/all_features//16_node/", k = 16)
+
+#  Plot the cluster composite images
+hier_clst_all_features_16 <- cutree(hclust(dist(wt_cis_cmb_SOM_all_features16$codes[[1]], "canberra")), k = 16)
+
+compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/all_features//16_node/",
+                      "All_features_16_", hier_clst_all_features_16,
+                      "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_281123/all_features//16_node/",
+                      numberOfImagesFromEachSom = 2)
+```
+
+
+
+
+## Hierachical clustering 
+Make sure that the features are separated so can see what the main features deriving 
+36 nodes
+```{r, fig.width=16, fig.height=6}
+brkN <- 31
+colors <- colorRampPalette(c("blue", "white","red"))(brkN)
+breaks <- seq(-5, 5, length.out = brkN)
+
+## AreaShape Features ------------------------------------------------------------------------------------------------------------------------------- ##
+AS_features <- colnames(wt_cis_cmb_SOM_AreaShape_codes36)
+AS_nuc <- AS_features[grepl('nuc' ,AS_features)]
+AS_cell <- AS_features[grepl('cell' ,AS_features)]
+AS_cyto <- AS_features[grepl('cyto' ,AS_features)]
+
+## Get feature combination
+AS_feature_grps <- data.frame(Group = c(rep("AreaShape_nuc", length(AS_nuc)), 
+                                        rep("AreaShape_cell", length(AS_cell)), 
+                                        rep("AreaShape_cyto", length(AS_cyto))),  
+                              row.names = c(AS_nuc, AS_cell, AS_cyto))
+
+pheatmap(wt_cis_cmb_SOM_AreaShape_codes36[, c(AS_nuc, AS_cell, AS_cyto)], show_colnames =  TRUE, breaks = breaks, color = colors, 
+         clustering_distance_rows = "canberra", main = "36 Node AreaShape features", cutree_rows = 16, cluster_cols = FALSE, annotation_col = AS_feature_grps, 
+         gaps_col = c(length(AS_nuc), length(AS_nuc) + length(AS_cell))
+            )
+
+## All Features ------------------------------------------------------------------------------------------------------------------------------- ##
+All_feature_Grps <- get_feature_groups(colnames(wt_cis_cmb_SOM_all_features_codes36), c( "Granularity", "Intensity", "RadialDistribution", "Texture"),
+                   c("DNA", "CytoSkel", "Mitochondria", "ER"), c("nuc", "cell", "cyto"))
+
+All_feature_Grps <- All_feature_Grps[order(All_feature_Grps$group),]
+All_feature_Grps_ColN <- cumsum(table(All_feature_Grps$group))
+
+pheatmap(wt_cis_cmb_SOM_all_features_codes36[,All_feature_Grps$feature], show_colnames =  FALSE, breaks = breaks, color = colors, 
+         clustering_distance_rows = "canberra", main = "36 Node All features", cutree_rows = 16, cluster_cols = FALSE, annotation_col = All_feature_Grps[, 1, drop = FALSE], 
+         gaps_col = All_feature_Grps_ColN
+            )
+
+## Top PCs ------------------------------------------------------------------------------------------------------------------------------- ##
+pheatmap(wt_cis_cmb_SOM_top_pcs36$codes[[1]], show_colnames =  TRUE, breaks = breaks, color = colors, 
+         clustering_distance_rows = "canberra", main = "36 Node PCs", cutree_rows = 16, cluster_cols = FALSE
+            )
+
+
+
+## Top features in PCs ------------------------------------------------------------------------------------------------------------------------------- ##
+
+
+```
+## Get the MST maps
+36 nodes
+```{r}
+
+```
+
+
+
