@@ -1,6 +1,25 @@
 require(tidyr)
 require(imager)
 require(purrr)
+require(MOFA2)
+library(viridis)
+library(grid)
+
+## SOM functions
+cell_paint_som <- function(data, datCols, xDim = 6, yDim = 6, seed = NULL){
+  
+  # General function to perform the SOM analysis
+
+  if (!is.null(seed)){
+    
+    set.seed(seed)
+    
+  }
+  g <- somgrid(xdim = xDim, ydim = yDim, topo = "rectangular")
+  data_som <- som(as.matrix(data[, datCols]), grid = g)
+
+  return(data_som)
+}
 
 ## Functions related to SOMs and minimal spanning trees
 
@@ -95,7 +114,7 @@ makeImagePatches <- function(metaData, SOM_class, nucLocs, outDr, prefix,
     }
   }
   
- # browser()
+  #browser()
   
   ## Open the images for each cell
   for (dx in 1:SOM_classN){ # loop through each SOM_class
@@ -173,10 +192,10 @@ makeImagePatches <- function(metaData, SOM_class, nucLocs, outDr, prefix,
 }
 
 ### Create summary plots of number of cells and percentage in eacg cluster
-pltCellsInClusters <- function(dat, SOMVals, somCls, metCols, savDr){
+pltCellsInClusters <- function(dat, SOMVals, somCls, metCols, savDr, k = 15){
   
   xx <- hclust(dist(SOMVals, "canberra"))
-  yy <- cutree(xx, k = 15)
+  yy <- cutree(xx, k = k)
   
   # Data.frame of SOM/cluster classes
   WT_Cis_FiltParmMapSOM36_Class <- cbind(dat[,metCols], som_class = somCls)
@@ -269,8 +288,9 @@ pltCellsInClusters <- function(dat, SOMVals, somCls, metCols, savDr){
     # annotate("text", x=myLocIC50WT - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="WT Cis IC50", angle=90) + 
     # annotate("text", x=myLocIC50Cis - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="Cis Cis IC50", angle=90)      
     
-    plt <- cisPerPlt + doxPerPlt + cntsWTCis + cntsWTDox + cntsCisCis + cntsCisDox + plot_layout(ncol = 2, guides = "collect")
-    ggsave(paste0(savDr, "Cluster_", px, ".png"), plt, width = 8, height = 12)
+    #plt <- cisPerPlt + doxPerPlt + cntsWTCis + cntsWTDox + cntsCisCis + cntsCisDox + plot_layout(ncol = 2, guides = "collect")
+    plt <- cisPerPlt +  cntsWTCis + cntsCisCis + plot_layout(ncol = 1, guides = "collect")
+    ggsave(paste0(savDr, "Cluster_", px, ".png"), plt, width = 5, height = 12)
     
   }  
 }
@@ -327,6 +347,90 @@ thetaMap <- function(){
   
 }
 
+## Get parameter groups
+## All features
+
+get_feature_groups <- function(nms, ftGrps, ims, areas, area_shape = "AreaShape"){
+  #browser()
+  grp <- c()
+  feat <- data.frame(matrix(ncol = 2, nrow = 0))
+  colnames(feat) <- c("group", "feature")
+  for (fdx in ftGrps){
+    for(idx in ims){
+      for(adx in areas){
+        tGrp <- paste(fdx, idx, adx, sep = "_")
+        tFet <- nms[grepl(paste(fdx, idx, adx, sep = ".*"), nms)]
+        ## features
+        #browser()
+        if (length(tFet) > 0){
+          feat <- rbind(feat, data.frame(group = tGrp, feature = tFet )) 
+          grp <- c(grp, tGrp)                  
+          
+        }
+      }
+    }
+  }
+  ## Area_shape parameters
+  for (adx in areas){
+    tGrp <- paste("AreaShape", adx, sep = "_")
+    tFet <- nms[grepl(paste("AreaShape", adx, sep = ".*"), nms)]
+    
+    if (length(tFet) > 0){
+      feat <- rbind(feat, data.frame(group = tGrp, feature = tFet )) 
+      grp <- c(grp, tGrp)           
+      
+    }
+    
+  }
+  #browser()
+  ## Correlation parameters
+  tGrp <- "Correlation"
+  tFet <- nms[grepl("^Correlation_(?!Correlation)", nms, perl = TRUE)]
+  
+  if (length(tFet) > 0){
+    feat <- rbind(feat, data.frame(group = tGrp, feature = tFet )) 
+    grp <- c(grp, tGrp)             
+  }
+  
+  ## Correlation parameters
+  # tGrp <- "Correlation"
+  # tFet <- nms[grepl("Correlation_(?!Correlation)", nms, perl = TRUE)]
+  # 
+  # if (length(tFet) > 0){
+  #   feat <- rbind(feat, data.frame(group = tGrp, feature = tFet )) 
+  #   grp <- c(grp, tGrp)             
+  # }
+  
+  ## Correlation_correlation parameters
+  tGrp <- "Correlation_Correlation"
+  tFet <- nms[grepl("Correlation_Correlation", nms)]
+  
+  if (length(tFet) > 0){
+    feat <- rbind(feat, data.frame(group = tGrp, feature = tFet )) 
+    grp <- c(grp, tGrp)             
+  }
+  
+  ## Neighbour parameters
+  tGrp <- "Neighbors"
+  tFet <- nms[grepl("Neighbors", nms)]
+  
+  if (length(tFet) > 0){
+    feat <- rbind(feat, data.frame(group = tGrp, feature = tFet )) 
+    grp <- c(grp, tGrp)             
+  }
+  
+  #browser()
+  if (!assertthat::are_equal(length(nms), length((feat$feature)))){
+    
+    print("The number of features in the named features is not equal to the number output")
+    
+  }
+  
+  #return(list(grp, feat))    
+  rownames(feat) <- feat$feature
+    
+  return(feat)
+}
 
 ## MOFA related functions =============================================================================== ##
 summarizeLongFeat <- function(x){
@@ -384,17 +488,194 @@ makeCpMOFAOb <- function(cpDat){
   colnames(MOFADat$Correlation) <- paste0("Cell", 1:nrow(cpDat))
   MOFADat$Correlation <- summarizeLongFeat(MOFADat$Correlation)
 
-
+  grps <- cpDat$cell_line
+  
   ## Make the MOFA object...
   
-  MOFAobject <- create_mofa(MOFADat)
+  MOFAobject <- create_mofa(MOFADat, groups = grps)
   
   return(MOFAobject)
   
   
 }
 
+## Plot 
+plot_data_scatter_dj <- function(MOFA, group = "cell_line", view = "DNA", factor = 1, n = 9, cov = NULL, x = "factor", logX = FALSE, colBrw = FALSE){
+  #browser()
+  W <- get_weights(MOFA)[[view]][, factor]
+  Z <- get_factors(MOFA, factor = factor)$group1
+  
+  W_sort <- W[order(abs(W), decreasing = T) ][1:n]
+  
+  features <- t(MOFAOb_WT_Cis_Trained@data[[view]]$group1)
+  #browser()
+  df <- data.frame( Z, features[,names(W_sort)], MOFA@samples_metadata)
+  
+  if (!is.null(cov)){
+    
+    df <- df[df[, group] == cov, ]
+    
+  }
+  
+  if (x == "factor"){
+    
+    x <- paste0("Factor", factor)
+    
+  } 
+  
+  if (logX){
+    
+    df[, x] <- log2(df[, x] + 250)
+    
+  }
+  #browser()
+  df_melt <- gather(df, key = "feature", value = "value", colnames(df)[2:(n+1)])
+  
+  p <- ggplot(data = df_melt, aes_string(x = x, y = "value", color = group)) + 
+    geom_point(size = 0.5) +
+    facet_wrap(~ feature, scales = "free_y") + stat_smooth(formula = y ~ x, aes_string(color = group), 
+                                                           method = "lm", alpha = 0.4) + ggpubr::stat_cor(aes_string(color = group,
+                                                                                                                     label = "..r.label.."), method = "pearson", 
+                                                                                                          label.sep = "\n", output.type = "latex", size = 3) 
+  
+  if (colBrw){
+    
+    p <- p + scale_color_gradient2(low = "red", mid = "white", high = "blue", midpoint =  10000)
+    
+  }
+  
+  p
+  
+}
 
+## Image, dendrogram heatmap image function
 
+imageDendroHM <- function(imDir, SOM_map, subDr_prefix, savDr, savFn,  clstCut = 16, imN = 5){
+  
+  SOM_codes <- SOM_map$codes[[1]]
+  # 1 Clustering of SOM nodes
+  
+  clst <- hclust(dist(SOM_codes, "canberra"))
+  clstCut <- cutree(clst, k = cut)
+  nodeN <- length(clst$order)
+  
+  row_phm_cut <- cumsum(sapply(unique(clstCut[rev(clst$order)] ), function(x){sum(clstCut[rev(clst$order)] == x)}))  # for colouring the SOM classes by cluster
+  
+  # 2 Make and create dendrogram plot
+  dend <- as.dendrogram(clst)
+  dend_data <- dendro_data(dend, type = "rectangle")
+  
+  dendCol_df <- cbind(dend_data$labels, data.frame(clst = clstCut[dend_data$labels$label])) # for colouring the SOM classes by cluster
+  
+  p <- ggplot(dend_data$segments) + 
+    geom_segment(aes(x = y, y = x, xend = yend, yend = xend))+
+    geom_text(data = dendCol_df, aes(y, x, label = label, color = clst),
+              hjust = 0.1, angle = 0, size = 5, vjust = 1.3) + ylim(1, nodeN) + coord_fixed(7*max(dend_data$segments$y)/nodeN) +
+    theme_bw() + ylab("") + xlab("") +
+    theme(axis.title.y = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(),
+          panel.background = element_blank(),
+          legend.position = "none",
+          plot.margin = unit(c(0,0,-5,-5), "cm")
+    ) + scale_color_viridis(discrete = FALSE, option = "E")
+  
+  # 3 Make the empty plot to display the 
+  p2 <- ggplot(dend_data$segments) + 
+    #geom_segment(aes(x = y, y = x, xend = yend, yend = xend))+
+    xlim(0, imN*0.96) +
+    ylim(1, nodeN) + theme_bw() + 
+    theme(axis.line = element_line(),
+          axis.line.x = element_line(color = "white"),
+          axis.title.x = element_text(color = "white"),
+          axis.text.x = element_text(color = "white"),
+          axis.ticks.x = element_line(color = "white"),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(),
+          plot.margin = unit(c(0,0,-5,-1), "cm"),
+          panel.background = element_blank()) +
+    coord_fixed()
+  
+  
+  # Get the plot limits of the dendrogram plot
+  ylimP <- ylim$layout$panel_params[[1]]$y.range
+  
+  whiteIm <- as.cimg(rep(1, 3*5*200), x = 5, y = 200, cc = 3) # white image for spacing
+  
+  # 4 Make the image grobs
+  for (idx in 1:nodeN){
+    
+    cd <- clst$order[idx]
+    
+    tImDir <- dir(paste0(imDir, subDr_prefix, cd), full.names = TRUE, )
+    tImFn <- dir(paste0(imDir, subDr_prefix, cd), full.names = FALSE, )
+    
+    smp <- sample(length(tImDir), imN)
+    
+    tIms <- lapply(tImDir[smp], load.image) # load images
+    tIms <- lapply(tIms, function(tI){imsub(tI, x > (dim(tI)[1]/2 + 1), y > (dim(tI)[2]/2 + 1))})
+    tIms  <- lapply(tIms, function(tI){pad(tI, 200 - dim(tI)[1], pos = 1,  "x")})
+    tIms  <- lapply(tIms, function(tI){pad(tI, 200 - dim(tI)[2], pos = 1,  "y")})
+    
+    for(dx in 1:imN){
+      tIms[[dx]] <- draw_text(tIms[[dx]], 10, 10, gsub(".png", "", tImFn[smp[dx]]), "white", fsize =8)
+    }
+    
+    
+    
+    ttIms <- (vector("list", length = (length(image_list) - 1) * 2 + 1))
+    
+    for (i in seq_along(tIms)) {
+      ttIms[[(i - 1) * 2 + 1]] <- tIms[[i]]
+      if (i < length(tIms)) {
+        ttIms[[(i - 1) * 2 + 2]] <- whiteIm
+      }
+    }
+    
+    
+    im <- imappend(ttIms, axis = "x")
+    
+    # 4 Format image in 
+    
+    p2 <- p2 + annotation_custom(rasterGrob(im, width = 1, height = 1),
+                                 xmin = 0, xmax = imN*0.96,
+                                 ymin = idx - 0.78, ymax = idx + 0.18) 
+    
+  }
+  
+  # 5 make the heatmap
+  
+  ### All features
+  All_feature_Grps <- get_feature_groups(colnames(SOM_map$data[[1]]), c( "Granularity", "Intensity", "RadialDistribution", "Texture"),
+                                         c("DNA", "CytoSkel", "Mitochondria", "ER"), c("nuc", "cell", "cyto"))
+  
+  All_feature_Grps <- All_feature_Grps[order(All_feature_Grps$group),]
+  All_feature_Grps_ColN <- cumsum(table(All_feature_Grps$group))
+  
+  SOM_Code_HM_plot <- SOM_codes[rev(clst$order) ,All_feature_Grps$feature]
+  colnames(SOM_Code_HM_plot) <- paste0("cl", 1:ncol(SOM_Code_HM_plot))
+  rownames(All_feature_Grps) <- colnames(SOM_Code_HM_plot)
+  
+  phm <- pheatmap(SOM_Code_HM_plot, show_colnames =  TRUE, breaks = breaks, color = colors, cluster_rows = F,
+                   clustering_distance_rows = "canberra", main = subDr_prefix, cutree_rows = clstCut, cluster_cols = FALSE, annotation_col = All_feature_Grps[, 1, drop = FALSE], 
+                   gaps_col = All_feature_Grps_ColN, gaps_row = row_phm_cut
+  )
+  
 
+  # Join plots together and write to file
+  
+  pp <- p2 + p + phm[[4]]
 
+  ggsave(pp, filename = paste0(savDr, savFn), 
+         height = 10, width = 30)
+  
+  
+}

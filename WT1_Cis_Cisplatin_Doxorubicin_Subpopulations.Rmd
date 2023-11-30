@@ -140,8 +140,8 @@ P9_Cis <- cpMakeMeta("P9", list(c( "500", "2000", "5000", "10000", "20000", "400
                  "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/Cell Paint Ibidi 10x/Cell Paint Ibidi 10x_P9 Drugs 1to3 R3_2022.05.19.09.00.29/",
                  "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/CellProfilerOutputs/RBGO_Storage/ResultsCisP01to04_09to12/P9/P9_SegmentationImages/")
 
-metCols <- colnames(P1_WT)[1:14]
-datCols <- colnames(P1_WT)[15:length(colnames(P1_WT))]
+metCols <- colnames(P1_WT)[1:13]
+datCols <- colnames(P1_WT)[14:length(colnames(P1_WT))]
 
 ```
 ## Make DF of all cisplation and Dox treatments and untreated samples (note that I have not added Dox to sample labels, need to do this for consistency!)
@@ -227,9 +227,9 @@ for (ax in areas){
     
     tDf <- tDf[,!colSums(is.na(tDf))]
     
-    x <- pheatmap(as.matrix((tDf)),  cluster_cols = F, cluster_rows = F, fontsize_row = 8, fontsize_col = 7, display_numbers = round(as.matrix(tDf), 2), fontsize = 4,
-                  color = c("blue","green", "yellow", "orange", "red"), breaks = c(min(c(min(tDf), -2.5)), -2, -1, 1, 2, max(c(max(tDf), 2.5))))
-    save_pheatmap_png(x, paste("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/Figures/WT_MAD_Div", mx, ax, cx, sep = "_"), width = 12*ncol(tDf) + 500, height = 800)
+    # x <- pheatmap(as.matrix((tDf)),  cluster_cols = F, cluster_rows = F, fontsize_row = 8, fontsize_col = 7, display_numbers = round(as.matrix(tDf), 2), fontsize = 4,
+    #               color = c("blue","green", "yellow", "orange", "red"), breaks = c(min(c(min(tDf), -2.5)), -2, -1, 1, 2, max(c(max(tDf), 2.5))))
+    # save_pheatmap_png(x, paste("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/Figures/WT_MAD_Div", mx, ax, cx, sep = "_"), width = 12*ncol(tDf) + 500, height = 800)
     
     # Summary of parameters outside MAD
     absWTMadGrt1 <- rowSums(abs(t(tDf)) > 1)
@@ -247,9 +247,9 @@ for (ax in areas){
     
     tDf <- tDf[,!colSums(is.na(tDf))]
     
-    x <- pheatmap(as.matrix((tDf)),  cluster_cols = F, cluster_rows = F, fontsize_row = 8, fontsize_col = 7, display_numbers = round(as.matrix(tDf), 2), fontsize = 4,
-                  color = c("blue","green", "yellow", "orange", "red"), breaks = c(min(c(min(tDf), -2.5)), -2, -1, 1, 2, max(c(max(tDf), 2.5))))
-    save_pheatmap_png(x, paste("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/Figures/Cis_MAD_Div", mx, ax, cx, sep = "_"), width = 14*ncol(tDf) + 500, height = 1000)  
+    # x <- pheatmap(as.matrix((tDf)),  cluster_cols = F, cluster_rows = F, fontsize_row = 8, fontsize_col = 7, display_numbers = round(as.matrix(tDf), 2), fontsize = 4,
+    #               color = c("blue","green", "yellow", "orange", "red"), breaks = c(min(c(min(tDf), -2.5)), -2, -1, 1, 2, max(c(max(tDf), 2.5))))
+    # save_pheatmap_png(x, paste("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/Figures/Cis_MAD_Div", mx, ax, cx, sep = "_"), width = 14*ncol(tDf) + 500, height = 1000)  
     
     # Summary of parameters outside MAD
     absCisMadGrt1 <- rowSums(abs(t(tDf)) > 1)
@@ -418,6 +418,16 @@ WT_Cis_CisplatinDoxUntreatedNrm <- WT_Cis_CisplatinDoxUntreatedNrm[, c(metCols, 
 
 ```
 
+## Save rds
+```{r}
+
+save(WT_CisplatinUntreatedNrm, Cis_CisplatinUntreatedNrm, WT_Cis_CisplatinDoxUntreatedNrm, 
+     WT_Cis_CorrelatedFeatures_IndNrm, WT_Cis_CorrelatedFeatures_CmbNrm, WT_CisplatinUntreated_nucLocs, Cis_CisplatinUntreated_nucLocs, 
+     file = '/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/WT_Cis_UT_Cis_Dox_Normed.rdata')
+
+```
+
+
 ## Get the well medians
 ```{r}
 
@@ -520,7 +530,7 @@ ggplot(WT_Cis_CisplatinUntreatedNrmMedPCA_IndividNrmDf, aes(x = PC1, y = PC2,  c
 ## Dimensionaltiy reduction of single cells
 ```{r, fig.width=15}
 set.seed(432)
-library(Rtsne)
+#library(Rtsne)
 
 ## 
 smpN <- 1000 # number of cells from each treatment/dose
@@ -528,7 +538,7 @@ smpN <- 1000 # number of cells from each treatment/dose
 ## Combined normalization
 WT_Cis_Cells_CmbNorm <- WT_Cis_CisplatinDoxUntreatedNrm[which(!grepl("Doxorubicin", WT_Cis_CisplatinDoxUntreatedNrm$Treatment)), ] %>% group_by(Dose, cell_line) %>% slice_sample(n = smpN)
 
-WT_Cis_Cells_CmbNormPCA <- prcomp(as.matrix(WT_Cis_Cells_CmbNorm[, datColsCmb]))
+WT_Cis_Cells_CmbNormPCA <- prcomp(as.matrix(WT_Cis_Cells_CmbNorm[, datColsCmb]), scale. = F)
 
 WT_Cis_Cells_CmbNormPCADf <- cbind(WT_Cis_Cells_CmbNorm[,1:13], 
                                           data.frame(PC1 = WT_Cis_Cells_CmbNormPCA$x[,1], 
@@ -556,7 +566,7 @@ WT_Cis_Cells_SepNorm <- rbind(WT_CisplatinUntreatedNrm[!grepl("Doxorubicin",WT_C
 
 WT_Cis_Cells_SepNormSmp <- WT_Cis_Cells_SepNorm[which(!grepl("Doxorubicin", WT_Cis_Cells_SepNorm$Treatment)), ] %>% group_by(Dose, cell_line) %>% slice_sample(n = smpN)
 
-WT_Cis_Cells_SepNormPCA <- prcomp(as.matrix(WT_Cis_Cells_SepNorm[, datColsInd]))
+WT_Cis_Cells_SepNormPCA <- prcomp(as.matrix(WT_Cis_Cells_SepNorm[, datColsInd]), scale. = F)
 
 WT_Cis_Cells_SepNormPCADf <- cbind(WT_Cis_Cells_SepNorm[,1:13], 
                                           data.frame(PC1 = WT_Cis_Cells_SepNormPCA$x[,1], 
@@ -586,6 +596,113 @@ ggplot(WT_Cis_Cells_SepNormPCADf[WT_Cis_Cells_SepNormPCADf$cell_line == "Cis",],
 
 
 ```
+## PCA scree plot
+```{r, fig.height=7}
+# Combined plot
+# Scree plot
+plot(WT_Cis_Cells_CmbNormPCA$sdev^2, type = "b", pch = 19, frame = FALSE, 
+     xlab = "Principal Component", ylab = "Variance Explained",
+     main = "Scree Plot", xlim = c(0,50))
+
+
+plot(WT_Cis_Cells_SepNormPCA$sdev^2, type = "b", pch = 19, frame = FALSE, 
+     xlab = "Principal Component", ylab = "Variance Explained",
+     main = "Scree Plot", xlim = c(0,50))
+
+```
+
+## Perform SOM analysis on PCs
+```{r}
+# Use top 11 PCs
+pcN <- 11
+
+WT_Cis_Cmb_PCs <- cbind(WT_Cis_Cells_CmbNorm[,metCols], WT_Cis_Cells_CmbNormPCA$x[, 1:pcN])
+
+set.seed(222)
+#g <- somgrid(xdim = 5, ydim = 5, topo = "rectangular")
+g <- somgrid(xdim = 6, ydim = 6, topo = "rectangular")
+WT_Cis_SOM36_Cmb_PC <- som(as.matrix(WT_Cis_Cmb_PCs[, paste0("PC", 1:11)]), grid = g)
+
+plot(WT_Cis_SOM36_Cmb_PC , type='codes', palette.name = rainbow)
+plot(WT_Cis_SOM36_Cmb_PC , type = "mapping")
+
+SOM36_Values_NrmCmb_PCs <- WT_Cis_SOM36_Cmb_PC$codes[[1]]
+
+```
+## Cluster results
+```{r}
+
+## Combined normalization 
+brkN <- 11
+colors <- colorRampPalette(c("blue", "white","red"))(brkN)
+breaks <- seq(-5, 5, length.out = brkN)
+
+# consensusSOM36_Values_NrmCmb_PCsCanberra <-  ConsensusClusterPlus(t(SOM36_Values_NrmCmb_PCs),maxK=20,reps=50,pItem=0.8,pFeature=1, title="36 Node clustering",clusterAlg="hc",
+#                                               seed=1262118388.71279, distance= "canberra", innerLinkage = "complete", finalLinkage = "complete")
+
+pheatmap(SOM36_Values_NrmCmb_PCs, show_colnames =  FALSE, breaks = breaks, color = colors, clustering_distance_rows = "canberra", main = "canberra 15", cutree_rows = 15)
+
+
+```
+
+
+## Write top PCs to images
+```{r}
+nucLocs <- rbind(WT_CisplatinUntreated_nucLocs, Cis_CisplatinUntreated_nucLocs)
+
+ptchMet <- WT_Cis_Cmb_PCs[, metCols]
+ptchMet$FilenameCyto <- gsub("UV - DAPI","Green - dsRed" , ptchMet$FilenameDNA)
+
+
+nucLocs2 <- dplyr::inner_join(ptchMet, nucLocs, by = c("FilenameDNA" = "FileName_DNA", "ObjectNumber_nuc" = "ObjectNumber_nuc"))
+
+makeImagePatches(data.frame(ptchMet), (WT_Cis_SOM36_Cmb_PC$unit.classif), data.frame(nucLocs2),
+                 "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_FromTopPCs/CmbNrm//",
+                 prefix = "CmbNrmPCs", smpN = 20, setSeed = TRUE, seed = 47)
+```
+
+## Get the composite images and the cell distributions
+
+```{r}
+
+## Cluster SOM nodes
+
+xxNrmCmbPCs <- cutree(hclust(dist(SOM36_Values_NrmCmb_PCs, "canberra")), k = 15)
+
+## Plot the cluster composite images
+compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_FromTopPCs/CmbNrm/",
+                      "CmbNrmPCs_", xxNrmCmbPCs,
+                      "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_FromTopPCs//CmbNrm//CompositeImages/")
+
+
+ # pltCellsInClusters(WT_Cis_Cells_SepNorm, SOM36_Values_NrmInd, WT_Cis_SOM36_Ind_TpFt$unit.classif, metCols, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_topPC_Parameters/CmbNrm/DoseDistributions/")
+
+## Plot the distributions
+ pltCellsInClusters(WT_Cis_Cells_CmbNorm, SOM36_Values_NrmCmb_PCs, WT_Cis_SOM36_Cmb_PC$unit.classif, metCols, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_FromTopPCs/CmbNrm/DoseDistributions/")
+ 
+```
+## MST
+```{r}
+
+WT_Cis_SOM_MST <- makeMSTFromSOM(WT_Cis_SOM36_Cmb_PC)
+meanClstSOMPar <- data.frame(matrix(ncol = ncol(WT_Cis_SOM36_Cmb_PC$codes[[1]]), nrow = 0))
+colnames(meanClstSOMPar) <- colnames(WT_Cis_SOM36_Cmb_PC$codes[[1]])
+
+for (dx in 1:length(unique(xxNrmCmbPCs))){
+  
+  tDf <- WT_Cis_SOM36_Cmb_PC$codes[[1]][names(xxNrmCmbPCs)[xxNrmCmbPCs == dx], , drop = FALSE]
+  if (nrow(tDf) > 1){
+  meanClstSOMPar[dx, ] <- colMeans(tDf)
+  } else {
+    
+    meanClstSOMPar[dx, ] <- tDf
+  }
+}
+
+WT_Cis_SOM_MST_TopPCs <- makeMSTFromSOM(meanClstSOMPar)
+plot(WT_Cis_SOM_MST_TopPCs)
+```
+
 
 ## MOFA analysis
 
@@ -636,9 +753,9 @@ MOFAOb_WT_Cis <- prepare_mofa(MOFAOb_WT_Cis,
 )
 
 ## Write mofa object to rds
-saveRDS(MOFAOb_WT, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/MOFA/cellPaintMOFA_091123_WT.rds")
-saveRDS(MOFAOb_Cis, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/MOFA/cellPaintMOFA_091123_Cis.rds")
-saveRDS(MOFAOb_WT_Cis, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/MOFA/cellPaintMOFA_091123_WT_Cis.rds")
+saveRDS(MOFAOb_WT, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/MOFA/cellPaintMOFA_091123_WT_grp.rds")
+saveRDS(MOFAOb_Cis, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/MOFA/cellPaintMOFA_091123_Cis_grp.rds")
+saveRDS(MOFAOb_WT_Cis, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/MOFA/cellPaintMOFA_091123_WT_Cis_grp.rds")
 
 
 ```
@@ -651,6 +768,8 @@ MOFAOb_WT_Cis_Trained <- readRDS("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCo
 plot_variance_explained(MOFAOb_WT_Trained, max_r2=20)
 plot_variance_explained(MOFAOb_Cis_Trained, max_r2=20)
 plot_variance_explained(MOFAOb_WT_Cis_Trained, max_r2=20)
+
+MOFAOb_WT_Cis_Trained@cache$variance_explained$r2_per_factor[[1]] 
 ```
 
 
@@ -689,7 +808,13 @@ correlate_factors_with_covariates(MOFAOb_Cis_Trained,
 
 correlate_factors_with_covariates(MOFAOb_WT_Cis_Trained, 
   covariates = c("cell_line","Dose", "plate", "Cell_Dose"), 
-  plot = "log_pval"
+  plot = "log_pval", groups = "group1"
+  
+)
+
+correlate_factors_with_covariates(MOFAOb_WT_Cis_Trained, 
+  covariates = c("cell_line","Dose", "plate", "Cell_Dose"), 
+  plot = "r", groups = "group1"
   
 )
 
@@ -709,13 +834,165 @@ plot_factors(MOFAOb_WT_Cis_Trained,
   dot_size = 4.0, color_by = "Cell_Dose", shape_by = "cell_line"
 )
 ```
+## Factor plots
+```{r, fig.width=8}
+plot_factor(MOFAOb_WT_Cis_Trained, factors=1, group_by = "cell_line", color_by="Dose") +
+  theme(
+    axis.text.x = element_text(color="black", angle=40, vjust=1, hjust=1)
+  )
+
+plot_factor(MOFAOb_WT_Cis_Trained, factors=2, group_by = "cell_line", color_by="Dose") +
+  theme(
+    axis.text.x = element_text(color="black", angle=40, vjust=1, hjust=1)
+  )
+
+
+
+plot_factor(MOFAOb_WT_Cis_Trained, factors=1, color_by = "cell_line", group_by="Dose", ) +
+  theme(
+    axis.text.x = element_text(color="black", angle=40, vjust=1, hjust=1)
+  )
+
+
+plot_factor(MOFAOb_WT_Cis_Trained, factors=2, color_by = "cell_line", group_by="Dose", ) +
+  theme(
+    axis.text.x = element_text(color="black", angle=40, vjust=1, hjust=1)
+  )
+
+```
+```{r, fig.width=8}
+# plot_data_scatter(MOFAOb_WT_Cis_Trained, 
+#   view = "AreaShape", 
+#   factor = 1, 
+#   features = 9,
+#   color_by = "cell_line",
+#   add_lm = T,
+#   dot_size = 1
+# )
+# 
+# plot_data_scatter(MOFAOb_WT_Cis_Trained, 
+#   view = "DNA", 
+#   factor = 1, 
+#   features = 3,
+#   color_by = "cell_line",
+#   add_lm = T,
+#   dot_size = 1
+# )
+
+plot_data_scatter(MOFAOb_WT_Cis_Trained, 
+  view = "DNA", 
+  factor = 2, 
+  features = 3,
+  color_by = "cell_line",
+  add_lm = T,
+  dot_size = 2
+)
+
+# plot_data_scatter(MOFAOb_WT_Cis_Trained, 
+#   view = "DNA", 
+#   factor = 2, 
+#   features = 2,
+#   color_by = "Cell_Dose",
+#   add_lm = T,
+#   dot_size = 1, 
+#   
+# )
+
+```
+
+## Separate WT and Cis for loadings plots
+```{r, fig.width=10}
+library(gridExtra)
+library(tidyr)
+
+
+
+p <- plot_data_scatter_dj(MOFAOb_WT_Cis_Trained,  view = "DNA", factor = 2, n = 4,  x = "Dose", logX = TRUE)
+
+p
+
+pd <- plot_data_scatter_dj(MOFAOb_WT_Cis_Trained,  view = "DNA", factor = 2, n = 4,  x = "cell_line", logX = FALSE)
+
+pd
+
+pf2 <- plot_data_scatter_dj(MOFAOb_WT_Cis_Trained,  view = "DNA", factor = 2, n = 4,  logX = TRUE)
+
+pf2
+
+p <- plot_data_scatter_dj(MOFAOb_WT_Cis_Trained,  view = "DNA", factor = 2, n = 4,  x = "Dose", logX = TRUE)
+
+pER <- plot_data_scatter_dj(MOFAOb_WT_Cis_Trained,  view = "ER", factor = 2, n = 9,   logX = FALSE)
+pER
+
+pER <- plot_data_scatter_dj(MOFAOb_WT_Cis_Trained,  view = "ER", factor = 2, n = 9, x = "Dose",  logX = FALSE)
+pER
+# pf2_Ds <- plot_data_scatter_dj(MOFAOb_WT_Cis_Trained,  view = "DNA", factor = 2, n = 4,  logX = TRUE, group = "Dose", colBrw = TRUE)
+# 
+# pf2_Ds
+
+
+## Plot factor 1 against dose
+fac1 = get_factors(MOFAOb_WT_Cis_Trained, factor = 1)$group1
+
+metaDat <- MOFAOb_WT_Cis_Trained@samples_metadata
+
+dfFac1 <- cbind(fac1, metaDat)
+
+ggplot(dfFac1, aes(x = as.factor(Dose), y = fac1, fill = cell_line)) + 
+  geom_violin() + geom_boxplot(width = 0.1) + stat_smooth(formula = y ~ x, aes_string(), 
+        method = "lm", alpha = 0.4) + facet_wrap(~ cell_line, scales = "free_y")
+
+
+
+## Plot factor 2 agaisnt dose
+
+
+fac2 = get_factors(MOFAOb_WT_Cis_Trained, factor = 2)$group1
+
+metaDat <- MOFAOb_WT_Cis_Trained@samples_metadata
+
+dfFac2 <- cbind(fac2, metaDat)
+
+ggplot(dfFac2, aes(x = as.factor(Dose), y = fac2, fill = cell_line)) + 
+  geom_violin() + geom_boxplot(width = 0.1) + stat_smooth(formula = y ~ x, aes_string(), 
+        method = "lm", alpha = 0.4) + facet_wrap(~ cell_line, scales = "free_y")
+
+
+## Plot factor 5 agaisnt dose
+
+
+fac5 = get_factors(MOFAOb_WT_Cis_Trained, factor = 5)$group1
+
+metaDat <- MOFAOb_WT_Cis_Trained@samples_metadata
+
+dfFac5 <- cbind(fac5, metaDat)
+
+ggplot(dfFac5, aes(x = as.factor(Dose), y = fac5, fill = cell_line)) + 
+  geom_violin() + geom_boxplot(width = 0.1) + stat_smooth(formula = y ~ x, aes_string(), 
+        method = "lm", alpha = 0.4) + facet_wrap(~ cell_line, scales = "free_y")
+
+
+## Plot factor 6 agaisnt dose
+
+
+fac6 = get_factors(MOFAOb_WT_Cis_Trained, factor = 6)$group1
+
+metaDat <- MOFAOb_WT_Cis_Trained@samples_metadata
+
+dfFac6 <- cbind(fac6, metaDat)
+
+ggplot(dfFac6, aes(x = as.factor(Dose), y = fac6, fill = cell_line)) + 
+  geom_violin() + geom_boxplot(width = 0.1) + stat_smooth(formula = y ~ x, aes_string(), 
+        method = "lm", alpha = 0.4) + facet_wrap(~ cell_line, scales = "free_y")
+
+```
 
 
 ## Factor loadings etc
 ```{r}
 plot_weights(MOFAOb_WT_Cis_Trained,
  view = "AreaShape",
- factor = 2,
+ factor = 5,
  nfeatures = 10,     # Top number of features to highlight
  scale = T           # Scale weights from -1 to 1
 )
@@ -892,7 +1169,7 @@ ptchMet$FilenameCyto <- gsub("UV - DAPI","Green - dsRed" , WT_Cis_CisplatinDoxUn
 #
 
 nucLocs2 <- dplyr::inner_join(ptchMet, nucLocs, by = c("FilenameDNA" = "FileName_DNA", "ObjectNumber_nuc" = "ObjectNumber_nuc"))
-
+# 
 makeImagePatches(ptchMet, WT_Cis_SOM36_Cmb_TpFt$unit.classif, nucLocs2,
                  "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_topPC_Parameters/CmbNrm/",
                  prefix = "CmbNrm", smpN = 30, setSeed = TRUE, seed = 47)
@@ -916,7 +1193,7 @@ compPlotsFromClusters("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseR
                       "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_topPC_Parameters/CmbNrm/CompositeImages/")
 
  pltCellsInClusters(WT_Cis_Cells_SepNorm, SOM36_Values_NrmInd, WT_Cis_SOM36_Ind_TpFt$unit.classif, metCols, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_topPC_Parameters/IndNrm/DoseDistributions//")
- 
+
   pltCellsInClusters(WT_Cis_CisplatinDoxUntreatedNrmNoDox, SOM36_Values_NrmCmb, WT_Cis_SOM36_Cmb_TpFt$unit.classif, metCols, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_topPC_Parameters/CmbNrm/DoseDistributions///")
 
 ```
