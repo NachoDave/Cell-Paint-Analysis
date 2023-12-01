@@ -550,12 +550,12 @@ plot_data_scatter_dj <- function(MOFA, group = "cell_line", view = "DNA", factor
 
 ## Image, dendrogram heatmap image function
 
-imageDendroHM <- function(imDir, SOM_map, subDr_prefix, savDr, savFn,  clstCut = 16, imN = 5){
-  
+imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, subDr_prefix, savDr, savFn,  cut = 16, imN = 5, feature_type = "features", clstMthd = "canberra"){
+  #browser()
   SOM_codes <- SOM_map$codes[[1]]
   # 1 Clustering of SOM nodes
   
-  clst <- hclust(dist(SOM_codes, "canberra"))
+  clst <- hclust(dist(SOM_codes, clstMthd))
   clstCut <- cutree(clst, k = cut)
   nodeN <- length(clst$order)
   
@@ -614,7 +614,7 @@ imageDendroHM <- function(imDir, SOM_map, subDr_prefix, savDr, savFn,  clstCut =
   for (idx in 1:nodeN){
     
     cd <- clst$order[idx]
-    
+    #browser()
     tImDir <- dir(paste0(imDir, subDr_prefix, cd), full.names = TRUE, )
     tImFn <- dir(paste0(imDir, subDr_prefix, cd), full.names = FALSE, )
     
@@ -631,7 +631,7 @@ imageDendroHM <- function(imDir, SOM_map, subDr_prefix, savDr, savFn,  clstCut =
     
     
     
-    ttIms <- (vector("list", length = (length(image_list) - 1) * 2 + 1))
+    ttIms <- (vector("list", length = (length(tIms) - 1) * 2 + 1))
     
     for (i in seq_along(tIms)) {
       ttIms[[(i - 1) * 2 + 1]] <- tIms[[i]]
@@ -640,7 +640,7 @@ imageDendroHM <- function(imDir, SOM_map, subDr_prefix, savDr, savFn,  clstCut =
       }
     }
     
-    
+    #browser()
     im <- imappend(ttIms, axis = "x")
     
     # 4 Format image in 
@@ -654,6 +654,9 @@ imageDendroHM <- function(imDir, SOM_map, subDr_prefix, savDr, savFn,  clstCut =
   # 5 make the heatmap
   
   ### All features
+  
+  if (feature_type == "allFeatures"){
+  
   All_feature_Grps <- get_feature_groups(colnames(SOM_map$data[[1]]), c( "Granularity", "Intensity", "RadialDistribution", "Texture"),
                                          c("DNA", "CytoSkel", "Mitochondria", "ER"), c("nuc", "cell", "cyto"))
   
@@ -665,17 +668,143 @@ imageDendroHM <- function(imDir, SOM_map, subDr_prefix, savDr, savFn,  clstCut =
   rownames(All_feature_Grps) <- colnames(SOM_Code_HM_plot)
   
   phm <- pheatmap(SOM_Code_HM_plot, show_colnames =  TRUE, breaks = breaks, color = colors, cluster_rows = F,
-                   clustering_distance_rows = "canberra", main = subDr_prefix, cutree_rows = clstCut, cluster_cols = FALSE, annotation_col = All_feature_Grps[, 1, drop = FALSE], 
+                   clustering_distance_rows = "canberra", main = (paste("SOM nodes=", nodeN, "Clust cut=" , cut, "Clust method =", clstMthd)), cutree_rows = clstCut, cluster_cols = FALSE, annotation_col = All_feature_Grps[, 1, drop = FALSE], 
                    gaps_col = All_feature_Grps_ColN, gaps_row = row_phm_cut
   )
+  
+  } else if(feature_type == "AreaShape"){
+    #browser()
+    AS_features <- colnames(SOM_codes)
+    AS_nuc <- AS_features[grepl('nuc' ,AS_features)]
+    AS_cell <- AS_features[grepl('cell' ,AS_features)]
+    AS_cyto <- AS_features[grepl('cyto' ,AS_features)]
+    
+    ## Get feature combination
+    AS_feature_grps <- data.frame(Group = c(rep("AreaShape_nuc", length(AS_nuc)), 
+                                            rep("AreaShape_cell", length(AS_cell)), 
+                                            rep("AreaShape_cyto", length(AS_cyto))),  
+                                  row.names = c(AS_nuc, AS_cell, AS_cyto))
+    
+    SOM_Code_HM_plot <- SOM_codes[rev(clst$order) , rownames(AS_feature_grps)]
+    colnames(SOM_Code_HM_plot) <- paste0("cl", 1:ncol(SOM_Code_HM_plot))
+    rownames(AS_feature_grps) <- colnames(SOM_Code_HM_plot)
+    
+    
+    phm <- pheatmap(SOM_Code_HM_plot, show_colnames =  TRUE, breaks = breaks, color = colors, cluster_rows = F,
+             clustering_distance_rows = "canberra", main = (paste("SOM nodes=", nodeN, "Clust cut=" , cut, "Clust method =", clstMthd)), cutree_rows = 16, cluster_cols = FALSE, annotation_col = AS_feature_grps, 
+             gaps_col = c(length(AS_nuc), length(AS_nuc) + length(AS_cell)), gaps_row = row_phm_cut
+    )
+    
+  } else {
+    #browser()
+    SOM_Code_HM_plot <- SOM_codes[rev(clst$order) , ]
+    colnames(SOM_Code_HM_plot) <- paste0("PC", 1:ncol(SOM_Code_HM_plot))
+    
+    phm <- pheatmap(SOM_Code_HM_plot, show_colnames =  TRUE, breaks = breaks, color = colors, cluster_rows = F,
+             clustering_distance_rows = "canberra", main = (paste("SOM nodes=", nodeN, "Clust cut=" , cut, "Clust method =", clstMthd)), cutree_rows = 16, cluster_cols = FALSE, 
+             gaps_row = row_phm_cut
+    )
+ 
+  }
   
 
   # Join plots together and write to file
   
   pp <- p2 + p + phm[[4]]
 
-  ggsave(pp, filename = paste0(savDr, savFn), 
-         height = 10, width = 30)
+  ggsave(pp, filename = paste0(savDr, "/","Dendro_Heatmap_" ,  savFn), 
+         height = 10, width = 30, dpi = 300)
   
+  # 5 get the cell counts
+  # Data.frame of SOM/cluster classes
+  FiltParmClass <- cbind(cell_dat[,metCols], som_class = SOM_map$unit.classif)
+  FiltParmClass$Cluster <- 0
+  
+  ## Get the mapping between SOM classes and clusters
+  somClustListFiltParm <- clstCut
+  
+  myLocIC50WT <- 3 + 1.43/3
+  myLocIC50Cis <- 6 + 8000/(40000-20000)
+  
+  for (idx in 1:length(somClustListFiltParm)){
+    FiltParmClass$Cluster[FiltParmClass$som_class == as.numeric(gsub("V", "", names(somClustListFiltParm)[idx]))] <- somClustListFiltParm[idx]
+  }
+  
+  ## Get possible data columns and number of cells in each
+  cellsByGroup <- FiltParmClass[,c("Dose", "Treatment", "plate", "Metadata_Well_nuc", "cell_line") ] %>% count(Dose, Treatment, plate, Metadata_Well_nuc, cell_line, name = "total_cells")# %>% group_by(Dose, cell_line, Treatment) %>% summarise(n = sum(n))   
+  
+  for (px in sort(unique(FiltParmClass$Cluster))){
+    
+    tDf <- FiltParmClass[FiltParmClass$Cluster == px,]
+    
+    ## Count cells
+    tDsCnts <- tDf %>% count(Dose, Treatment, plate, Metadata_Well_nuc, cell_line)
+    
+    tCnts <- cellsByGroup
+    tCnts <- dplyr::left_join(tCnts, tDsCnts, by = c("Dose", "Treatment", "Metadata_Well_nuc", "plate", "cell_line"))
+    tCnts$n[is.na(tCnts$n)] = 0
+    
+    tCnts$percent <- 100*tCnts$n/cellsByGroup$total_cells
+    
+    ## Get mean and standard deviations of wells for each treatment
+    
+    tDsPltCnts <- tCnts %>% group_by(Dose, cell_line, Treatment) %>% summarise(mnN = mean(n), sdN = sd(n), mnPer = mean(percent), sdPer = sd(percent))
+    tDsPltCnts$Dose <- factor( tDsPltCnts$Dose, levels = sort(unique(as.numeric(tDsPltCnts$Dose))))  
+    
+    ## Get percentage of total population for each cell type cisplatin
+    
+    cisPerPlt <- ggplot(tDsPltCnts[grepl("Cis|untreated", tDsPltCnts$Treatment), ], aes(x = Dose, y = mnPer, fill = cell_line)) + 
+      geom_bar(stat = "identity", position= position_dodge(), color = "black") + geom_errorbar(aes(ymin=mnPer-sdPer, ymax=mnPer+sdPer), width=.2,position=position_dodge(.9)) +
+      xlab("Dose (nm)") + ylab("Percent of total cells") + theme_bw() + ggtitle(paste("Percentage of cells Cis treat, Cluster: ", px )) +
+      scale_fill_discrete(name = "Cell line")  + theme(axis.text.x = element_text(angle = 30)) +
+      geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2) +
+      annotate("text", x=myLocIC50WT - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="WT Cis IC50", angle=90) + 
+      annotate("text", x=myLocIC50Cis - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="Cis Cis IC50", angle=90) 
+    
+    ## Get cell counts for each group 
+    ### Cisplatin
+    cntsWTCis <- ggplot(tDsPltCnts[grepl("Cis|untreated", tDsPltCnts$Treatment) & grepl("WT", tDsPltCnts$cell_line), ], aes(x = Dose, y = mnN)) + 
+      geom_bar(stat = "identity", position= position_dodge(), color = "black", fill = "#00bfc4") + geom_errorbar(aes(ymin=mnN-sdN, ymax=mnN+sdN), width=.2,position=position_dodge(.9)) +
+      xlab("Dose (nm)") + ylab("Number of cells") + theme_bw() + ggtitle(paste("No of cells Cis treat WT, Cluster: ", px )) + 
+      scale_fill_discrete(name = "Cell line")  + theme(axis.text.x = element_text(angle = 30)) +
+      geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2) +
+      annotate("text", x=myLocIC50WT - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="WT Cis IC50", angle=90) + 
+      annotate("text", x=myLocIC50Cis - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="Cis Cis IC50", angle=90)       
+    
+    cntsCisCis <- ggplot(tDsPltCnts[grepl("Cis|untreated", tDsPltCnts$Treatment) & grepl("Cis", tDsPltCnts$cell_line), ], aes(x = Dose, y = mnN)) + 
+      geom_bar(stat = "identity", position= position_dodge(), color = "black", fill = "#f8766d") + geom_errorbar(aes(ymin=mnN-sdN, ymax=mnN+sdN), width=.2,position=position_dodge(.9)) +
+      xlab("Dose (nm)") + ylab("Number of cells") + theme_bw() + ggtitle(paste("No of cells Cis treat Cis, Cluster: ", px )) + 
+      scale_fill_discrete(name = "Cell line")  + theme(axis.text.x = element_text(angle = 30)) +
+      geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2)
+    
+    
+    ## Add to P3 plot
+    tP <- cisPerPlt + cntsWTCis + cntsCisCis
+    ggsave(plot = tP, filename = paste0(savDr, "x.png"), 
+           height = 3, width = 12)
+    
+    tCntPlt <- load.image(paste0(savDr, "x.png"))
+    
+    classInClst <- unique(FiltParmClass$som_class[FiltParmClass$Cluster == px])
+    
+    pos1 <- which(clst$order %in% classInClst)
+    pos <- pos1[length(pos1)]
+    
+    #browser()
+    p3 <- p3 + annotation_custom(rasterGrob(tCntPlt, width = 1, height = 1),
+                                 xmin = 0, xmax = Inf,
+                                 ymin = pos - 0.8, ymax = pos + 0.2)
+    
+    
+    
+  }
+  
+  ppp <- p2 + p + p3 + ggtitle(paste("SOM nodes=", nodeN, "Clust cut=" , cut, "Clust method =", clstMthd))
+  
+  
+  
+  
+  ggsave(ppp, filename = paste0(savDr, "/","Dendro_CellCount_" ,  savFn), 
+         height = 10, width = 8, dpi = 600)
   
 }
