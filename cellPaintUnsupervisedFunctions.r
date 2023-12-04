@@ -4,6 +4,7 @@ require(purrr)
 require(MOFA2)
 library(viridis)
 library(grid)
+library(ggdendro)
 
 ## SOM functions
 cell_paint_som <- function(data, datCols, xDim = 6, yDim = 6, seed = NULL){
@@ -550,8 +551,12 @@ plot_data_scatter_dj <- function(MOFA, group = "cell_line", view = "DNA", factor
 
 ## Image, dendrogram heatmap image function
 
-imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, subDr_prefix, savDr, savFn,  cut = 16, imN = 5, feature_type = "features", clstMthd = "canberra"){
+imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity, subDr_prefix, savDr, savFn,  cut = 16, imN = 5, feature_type = "features", clstMthd = "canberra"){
   #browser()
+  
+  # Combine the integrated Intensity data with the cell data
+  cell_dat <- dplyr::inner_join(cell_dat, integratedIntensity[, c("FilenameDNA", "ObjectNumber_nuc", "Intensity_IntegratedIntensity_DNA_Corr_nuc")], by = c("FilenameDNA" = "FilenameDNA", "ObjectNumber_nuc" = "ObjectNumber_nuc"))
+  
   SOM_codes <- SOM_map$codes[[1]]
   # 1 Clustering of SOM nodes
   
@@ -604,9 +609,12 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, subDr_prefix, savDr
           panel.background = element_blank()) +
     coord_fixed()
   
+  p3 <- p2 # plot for cell count to go on
+  
+  p4 <- p2 # plot for cell cycle
   
   # Get the plot limits of the dendrogram plot
-  ylimP <- ylim$layout$panel_params[[1]]$y.range
+  #ylimP <- ylim$layout$panel_params[[1]]$y.range
   
   whiteIm <- as.cimg(rep(1, 3*5*200), x = 5, y = 200, cc = 3) # white image for spacing
   
@@ -618,7 +626,13 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, subDr_prefix, savDr
     tImDir <- dir(paste0(imDir, subDr_prefix, cd), full.names = TRUE, )
     tImFn <- dir(paste0(imDir, subDr_prefix, cd), full.names = FALSE, )
     
-    smp <- sample(length(tImDir), imN)
+    
+    # if(idx > 21){
+    #   browser()
+    # 
+    # }
+    
+    if (length(tImFn) >= imN){smp <- sample(length(tImDir), imN)} else {smp <- sample(length(tImDir), imN, replace = TRUE)}
     
     tIms <- lapply(tImDir[smp], load.image) # load images
     tIms <- lapply(tIms, function(tI){imsub(tI, x > (dim(tI)[1]/2 + 1), y > (dim(tI)[2]/2 + 1))})
@@ -652,72 +666,74 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, subDr_prefix, savDr
   }
   
   # 5 make the heatmap
-  
+  brkN <- 11
+  colors <- colorRampPalette(c("blue", "white","red"))(brkN)
+  breaks <- seq(-5, 5, length.out = brkN)
   ### All features
   
   if (feature_type == "allFeatures"){
-  
+
   All_feature_Grps <- get_feature_groups(colnames(SOM_map$data[[1]]), c( "Granularity", "Intensity", "RadialDistribution", "Texture"),
                                          c("DNA", "CytoSkel", "Mitochondria", "ER"), c("nuc", "cell", "cyto"))
-  
+
   All_feature_Grps <- All_feature_Grps[order(All_feature_Grps$group),]
   All_feature_Grps_ColN <- cumsum(table(All_feature_Grps$group))
-  
+
   SOM_Code_HM_plot <- SOM_codes[rev(clst$order) ,All_feature_Grps$feature]
   colnames(SOM_Code_HM_plot) <- paste0("cl", 1:ncol(SOM_Code_HM_plot))
   rownames(All_feature_Grps) <- colnames(SOM_Code_HM_plot)
-  
+
   phm <- pheatmap(SOM_Code_HM_plot, show_colnames =  TRUE, breaks = breaks, color = colors, cluster_rows = F,
-                   clustering_distance_rows = "canberra", main = (paste("SOM nodes=", nodeN, "Clust cut=" , cut, "Clust method =", clstMthd)), cutree_rows = clstCut, cluster_cols = FALSE, annotation_col = All_feature_Grps[, 1, drop = FALSE], 
+                   clustering_distance_rows = "canberra", main = (paste("SOM nodes=", nodeN, "Clust cut=" , cut, "Clust method =", clstMthd)), cutree_rows = clstCut, cluster_cols = FALSE, annotation_col = All_feature_Grps[, 1, drop = FALSE],
                    gaps_col = All_feature_Grps_ColN, gaps_row = row_phm_cut
   )
-  
+
   } else if(feature_type == "AreaShape"){
     #browser()
     AS_features <- colnames(SOM_codes)
     AS_nuc <- AS_features[grepl('nuc' ,AS_features)]
     AS_cell <- AS_features[grepl('cell' ,AS_features)]
     AS_cyto <- AS_features[grepl('cyto' ,AS_features)]
-    
+
     ## Get feature combination
-    AS_feature_grps <- data.frame(Group = c(rep("AreaShape_nuc", length(AS_nuc)), 
-                                            rep("AreaShape_cell", length(AS_cell)), 
-                                            rep("AreaShape_cyto", length(AS_cyto))),  
+    AS_feature_grps <- data.frame(Group = c(rep("AreaShape_nuc", length(AS_nuc)),
+                                            rep("AreaShape_cell", length(AS_cell)),
+                                            rep("AreaShape_cyto", length(AS_cyto))),
                                   row.names = c(AS_nuc, AS_cell, AS_cyto))
-    
+
     SOM_Code_HM_plot <- SOM_codes[rev(clst$order) , rownames(AS_feature_grps)]
     colnames(SOM_Code_HM_plot) <- paste0("cl", 1:ncol(SOM_Code_HM_plot))
     rownames(AS_feature_grps) <- colnames(SOM_Code_HM_plot)
-    
-    
+
+
     phm <- pheatmap(SOM_Code_HM_plot, show_colnames =  TRUE, breaks = breaks, color = colors, cluster_rows = F,
-             clustering_distance_rows = "canberra", main = (paste("SOM nodes=", nodeN, "Clust cut=" , cut, "Clust method =", clstMthd)), cutree_rows = 16, cluster_cols = FALSE, annotation_col = AS_feature_grps, 
+             clustering_distance_rows = "canberra", main = (paste("SOM nodes=", nodeN, "Clust cut=" , cut, "Clust method =", clstMthd)), cutree_rows = 16, cluster_cols = FALSE, annotation_col = AS_feature_grps,
              gaps_col = c(length(AS_nuc), length(AS_nuc) + length(AS_cell)), gaps_row = row_phm_cut
     )
-    
+
   } else {
     #browser()
     SOM_Code_HM_plot <- SOM_codes[rev(clst$order) , ]
     colnames(SOM_Code_HM_plot) <- paste0("PC", 1:ncol(SOM_Code_HM_plot))
-    
+
     phm <- pheatmap(SOM_Code_HM_plot, show_colnames =  TRUE, breaks = breaks, color = colors, cluster_rows = F,
-             clustering_distance_rows = "canberra", main = (paste("SOM nodes=", nodeN, "Clust cut=" , cut, "Clust method =", clstMthd)), cutree_rows = 16, cluster_cols = FALSE, 
+             clustering_distance_rows = "canberra", main = (paste("SOM nodes=", nodeN, "Clust cut=" , cut, "Clust method =", clstMthd)), cutree_rows = 16, cluster_cols = FALSE,
              gaps_row = row_phm_cut
     )
- 
-  }
-  
 
-  # Join plots together and write to file
-  
+  }
+  # 
+  # 
+  # # Join plots together and write to file
+  # 
   pp <- p2 + p + phm[[4]]
 
-  ggsave(pp, filename = paste0(savDr, "/","Dendro_Heatmap_" ,  savFn), 
+  ggsave(pp, filename = paste0(savDr, "/","Dendro_Heatmap_" ,  savFn),
          height = 10, width = 30, dpi = 300)
   
   # 5 get the cell counts
   # Data.frame of SOM/cluster classes
-  FiltParmClass <- cbind(cell_dat[,metCols], som_class = SOM_map$unit.classif)
+  FiltParmClass <- cbind(cell_dat[,c(metCols, "Intensity_IntegratedIntensity_DNA_Corr_nuc")], som_class = SOM_map$unit.classif)
   FiltParmClass$Cluster <- 0
   
   ## Get the mapping between SOM classes and clusters
@@ -734,7 +750,7 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, subDr_prefix, savDr
   cellsByGroup <- FiltParmClass[,c("Dose", "Treatment", "plate", "Metadata_Well_nuc", "cell_line") ] %>% count(Dose, Treatment, plate, Metadata_Well_nuc, cell_line, name = "total_cells")# %>% group_by(Dose, cell_line, Treatment) %>% summarise(n = sum(n))   
   
   for (px in sort(unique(FiltParmClass$Cluster))){
-    
+    #browser()
     tDf <- FiltParmClass[FiltParmClass$Cluster == px,]
     
     ## Count cells
@@ -795,16 +811,119 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, subDr_prefix, savDr
                                  xmin = 0, xmax = Inf,
                                  ymin = pos - 0.8, ymax = pos + 0.2)
     
+    ## PLot the cell cycle
+    #print(p)
+    #browser()
     
     
+    # wt_his <- FiltParmClass[FiltParmClass$som_class %in% pos1 & FiltParmClass$cell_line == "WT", ]
+    # cis_his <- FiltParmClass[FiltParmClass$som_class %in% pos1 & FiltParmClass$cell_line == "Cis", ]
+    
+    pWT <- ggplot(tDf[tDf$cell_line == 'WT',], aes(x = Intensity_IntegratedIntensity_DNA_Corr_nuc)) + 
+      geom_histogram(bins = 300, fill = "#00bfc4") + xlim(0, 50) + xlab("Integrated Intensity") + ylab("Cell count")
+    
+    pCis <- ggplot(tDf[tDf$cell_line == 'Cis',], aes(x = Intensity_IntegratedIntensity_DNA_Corr_nuc)) + 
+      geom_histogram(bins = 300, fill = "#f8766d") + xlim(0, 50) + xlab("Integrated Intensity") + ylab("Cell count")
+    
+    pCC <- pWT + pCis
+    
+    ggsave(plot = pCC, filename = paste0(savDr, "cc.png"), 
+           height = 3, width = 6)
+    
+    pCC <- load.image(paste0(savDr, "cc.png"))
+    
+    #browser()
+    #print()
+    p4 <- p4 + annotation_custom(rasterGrob(pCC, width = 1, height = 1),
+                                 xmin = 0, xmax = Inf,
+                                 ymin = pos - 0.8, ymax = pos + 0.2)
+    
+    # save cell cycle plots
   }
   
   ppp <- p2 + p + p3 + ggtitle(paste("SOM nodes=", nodeN, "Clust cut=" , cut, "Clust method =", clstMthd))
-  
-  
-  
-  
+
   ggsave(ppp, filename = paste0(savDr, "/","Dendro_CellCount_" ,  savFn), 
          height = 10, width = 8, dpi = 600)
+  
+  ppp <- p2 + p + p4 + ggtitle(paste("SOM nodes=", nodeN, "Clust cut=" , cut, "Clust method =", clstMthd))
+  
+  ggsave(ppp, filename = paste0(savDr, "/","Dendro_CellCycle_" ,  savFn), 
+         height = 10, width = 8, dpi = 600)
+  
+  ## Plots for cluster counts -------------------------------------------------------- #
+  
+  # count the number of wells
+  wellCntWT <- FiltParmClass %>% group_by(Dose, Metadata_Well_nuc) %>% count()
+  wellCntWT <- wellCntWT[, "Dose", drop = F] %>% count()
+  
+  No_Cells_DoseClusterWT <- FiltParmClass[FiltParmClass$cell_line == "WT", ] %>% group_by(Dose, Cluster) %>% count() %>% 
+    summarise(nn = sum(n)) %>% inner_join( wellCntWT, by = "Dose") %>% mutate(nn = nn/n) %>%
+    mutate(percentage = nn / sum(nn))  
+  
+  No_Cells_DoseClusterWT$Dose <- as.numeric(No_Cells_DoseClusterWT$Dose)
+  No_Cells_DoseClusterWT$Dose[No_Cells_DoseClusterWT$Dose == 0] <- 100 
+  No_Cells_DoseClusterWT$Cluster <- factor(No_Cells_DoseClusterWT$Cluster, levels = 1:15)
+  
+  pWT_per <- ggplot(No_Cells_DoseClusterWT, aes(x=(as.numeric(Dose)), y=100*percentage, fill=Cluster)) + 
+    geom_area(alpha=0.6 , linewidth=0.8, colour="white") + ylab("Percentage of cells") + geom_col(colour = "white", width = 0.1) +
+    xlab("Dose (nm)") + 
+    ggtitle("WT cell percent") + 
+    geom_vline(xintercept = 28200, linetype = "dashed", linewidth = 1.0) +
+    annotate("text", x=28200 - 1700, y=50, label="Cis IC50", angle=90) +
+    geom_vline(xintercept = 3430, linetype = "dashed", linewidth = 1.0) +
+    annotate("text", x=3430 - 300, y=50, label="WT IC50", angle=90) +
+    scale_x_log10() + theme_bw()
+  
+  pWT_cnts <- ggplot(No_Cells_DoseClusterWT, aes(x=(as.numeric(Dose)), y=nn, fill=Cluster)) + 
+    geom_area(alpha=0.6 , linewidth=0.8, colour="white") + ylab("Number of cells per well") + geom_col(colour = "white", width = 0.1) +
+    xlab("Dose (nm)") + 
+    ggtitle("WT Cell Count") + 
+    geom_vline(xintercept = 28200, linetype = "dashed", linewidth = 1.0) +
+    annotate("text", x=28200 - 1700, y=4000, label="Cis IC50", angle=90) +
+    geom_vline(xintercept = 3430, linetype = "dashed", linewidth = 1.0) +
+    annotate("text", x=3430 - 300, y=4000, label="WT IC50", angle=90) +
+    scale_x_log10() + theme_bw()
+  
+  ## Cisplatin resistant
+  
+  # count the number of wells
+  wellCntCis <- FiltParmClass %>% group_by(Dose, Metadata_Well_nuc) %>% count()
+  wellCntCis <- wellCntCis[, "Dose", drop = F] %>% count()
+  
+  No_Cells_DoseClusterCis <- FiltParmClass[FiltParmClass$cell_line == "Cis", ] %>% group_by(Dose, Cluster) %>% count() %>% 
+    summarise(nn = sum(n)) %>% inner_join( wellCntCis, by = "Dose") %>% mutate(nn = nn/n) %>%
+    mutate(percentage = nn / sum(nn))  
+  
+  No_Cells_DoseClusterCis$Dose <- as.numeric(No_Cells_DoseClusterCis$Dose)
+  No_Cells_DoseClusterCis$Dose[No_Cells_DoseClusterCis$Dose == 0] <- 100 
+  No_Cells_DoseClusterCis$Cluster <- factor(No_Cells_DoseClusterCis$Cluster, levels = 1:15)
+  
+  pCis_per <- ggplot(No_Cells_DoseClusterCis, aes(x=(as.numeric(Dose)), y=100*percentage, fill=Cluster)) + 
+    geom_area(alpha=0.6 , linewidth=0.8, colour="white") + ylab("Percentage of cells") + geom_col(colour = "white", width = 0.1) +
+    xlab("Dose (nm)") + 
+    ggtitle("Cis cell percent") + 
+    geom_vline(xintercept = 28200, linetype = "dashed", linewidth = 1.0) +
+    annotate("text", x=28200 - 1700, y=50, label="Cis IC50", angle=90) +
+    geom_vline(xintercept = 3430, linetype = "dashed", linewidth = 1.0) +
+    annotate("text", x=3430 - 300, y=50, label="Cis IC50", angle=90) +
+    scale_x_log10() + theme_bw()
+  
+  pCis_cnts <- ggplot(No_Cells_DoseClusterCis, aes(x=(as.numeric(Dose)), y=nn, fill=Cluster)) + 
+    geom_area(alpha=0.6 , linewidth=0.8, colour="white") + ylab("Number of cells per well") + geom_col(colour = "white", width = 0.1) +
+    xlab("Dose (nm)") + 
+    ggtitle("Cis Cell Count") + 
+    geom_vline(xintercept = 28200, linetype = "dashed", linewidth = 1.0) +
+    annotate("text", x=28200 - 1700, y=4000, label="WT IC50", angle=90) +
+    geom_vline(xintercept = 3430, linetype = "dashed", linewidth = 1.0) +
+    annotate("text", x=3430 - 300, y=4000, label="Cis IC50", angle=90) +
+    scale_x_log10() + theme_bw()
+  
+  # ggsave(pWT_per, filename = paste0(savDr, "/","StackedPlot_WT_per_" ,  savFn))
+  # ggsave(pWT_cnts, filename = paste0(savDr, "/","StackedPlot_WT_cnts_" ,  savFn))
+  # ggsave(pCis_per, filename = paste0(savDr, "/","StackedPlot_Cis_per_" ,  savFn))
+  # ggsave(pCis_cnts, filename = paste0(savDr, "/","StackedPlot_Cis_cnts_" ,  savFn))
+  
+  ggsave(pWT_per + pWT_cnts + pCis_per + pCis_cnts, filename = paste0(savDr, "/","StackedPlot_" ,  savFn), height = 10, width = 12)
   
 }
