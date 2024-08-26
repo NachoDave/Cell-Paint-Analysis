@@ -585,29 +585,29 @@ pheatmap(wt_cis_cmb_SOM_top_pcs36$codes[[1]], show_colnames =  TRUE, breaks = br
 ## Plot features
 ```{r}
 ## All features
+imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//all_features/25_node/",
+              wt_cis_cmb_SOM_all_features25,
+              WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
+              metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
+              "All_features_25_",
+              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM plots 260824/",
+              "all_features_25_clst25_NoIsolate_cell_10im.png",  cut = 25, imN = 10, feature_type = "allFeatures", isolateCell = FALSE)
+# # 
+# imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//all_features/25_node/",
+#               wt_cis_cmb_SOM_all_features25,
+#               WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
+#               metColsCmb, sWT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
+#               "All_features_25_",
+#               "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
+#               "all_features_25_clst12.png",  cut = 12, imN = 5, feature_type = "allFeatures")
+# #
 # imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//all_features/25_node/",
 #               wt_cis_cmb_SOM_all_features25,
 #               WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
 #               metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
 #               "All_features_25_",
 #               "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
-#               "all_features_25_clst25.png",  cut = 25, imN = 5, feature_type = "allFeatures")
-# # 
-imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//all_features/25_node/",
-              wt_cis_cmb_SOM_all_features25,
-              WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
-              metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
-              "All_features_25_",
-              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
-              "all_features_25_clst12.png",  cut = 12, imN = 5, feature_type = "allFeatures")
-#
-imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//all_features/25_node/",
-              wt_cis_cmb_SOM_all_features25,
-              WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
-              metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
-              "All_features_25_",
-              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
-              "all_features_25_clst6.png",  cut = 6, imN = 5, feature_type = "allFeatures")
+#               "all_features_25_clst6.png",  cut = 6, imN = 5, feature_type = "allFeatures")
 # 
 # 
 # ## AreaShape features
@@ -619,21 +619,21 @@ imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/
 #               "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
 #               "AreaShape_25_clst25.png",  cut = 25, imN = 5, feature_type = "AreaShape")
 
-imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//areashape_features//25_node/",
-              wt_cis_cmb_SOM_AreaShape25,
-              WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
-              metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
-              "AreaShape_25_",
-              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
-              "AreaShape_25_clst12.png",  cut = 12, imN = 5, feature_type = "AreaShape")
+# imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//areashape_features//25_node/",
+#               wt_cis_cmb_SOM_AreaShape25,
+#               WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
+#               metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
+#               "AreaShape_25_",
+#               "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
+#               "AreaShape_25_clst12.png",  cut = 12, imN = 5, feature_type = "AreaShape")
 
-imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//areashape_features//25_node/",
-              wt_cis_cmb_SOM_AreaShape25,
-              WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
-              metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
-              "AreaShape_25_",
-              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
-              "AreaShape_25_clst6.png",  cut = 6, imN = 5, feature_type = "AreaShape")
+# imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//areashape_features//25_node/",
+#               wt_cis_cmb_SOM_AreaShape25,
+#               WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
+#               metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
+#               "AreaShape_25_",
+#               "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
+#               "AreaShape_25_clst6.png",  cut = 6, imN = 5, feature_type = "AreaShape")
 
 ## Top PC features
 # imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//top_features_from_PCs/25_node/",
@@ -644,21 +644,21 @@ imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/
 #               "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
 #               "topPC_features_25_clst25.png",  cut = 25, imN = 5, feature_type = "allFeatures")
 # 
-imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//top_features_from_PCs/25_node/",
-              wt_cis_cmb_SOM_top_pc_features25,
-              WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
-              metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
-              "TopPC_feats_25_",
-              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
-              "topPC_features_25_clst12.png",  cut = 12, imN = 5, feature_type = "allFeatures")
-
-imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//top_features_from_PCs/25_node/",
-              wt_cis_cmb_SOM_top_pc_features25,
-              WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
-              metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
-              "TopPC_feats_25_",
-              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
-              "topPC_features_25_clst6.png",  cut = 6, imN = 5, feature_type = "allFeatures")
+# imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//top_features_from_PCs/25_node/",
+#               wt_cis_cmb_SOM_top_pc_features25,
+#               WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
+#               metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
+#               "TopPC_feats_25_",
+#               "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
+#               "topPC_features_25_clst12.png",  cut = 12, imN = 5, feature_type = "allFeatures")
+# 
+# imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//top_features_from_PCs/25_node/",
+#               wt_cis_cmb_SOM_top_pc_features25,
+#               WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
+#               metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
+#               "TopPC_feats_25_",
+#               "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
+#               "topPC_features_25_clst6.png",  cut = 6, imN = 5, feature_type = "allFeatures")
 
 ## Top PCs
 # imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//top_PCs//25_node/",

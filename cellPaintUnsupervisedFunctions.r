@@ -553,7 +553,7 @@ plot_data_scatter_dj <- function(MOFA, group = "cell_line", view = "DNA", factor
 
 ## Image, dendrogram heatmap image function
 
-imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity, subDr_prefix, savDr, savFn,  cut = 16, imN = 5, feature_type = "features", clstMthd = "canberra"){
+imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity, subDr_prefix, savDr, savFn,  cut = 16, imN = 5, feature_type = "features", clstMthd = "canberra", isolateCell = FALSE){
   #browser()
   
   # Combine the integrated Intensity data with the cell data
@@ -635,16 +635,29 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity
     # }
     
     if (length(tImFn) >= imN){smp <- sample(length(tImDir), imN)} else {smp <- sample(length(tImDir), imN, replace = TRUE)}
-    
+    #browser()
     tIms <- lapply(tImDir[smp], load.image) # load images
     tIms <- lapply(tIms, function(tI){imsub(tI, x > (dim(tI)[1]/2 + 1), y > (dim(tI)[2]/2 + 1))})
     tIms  <- lapply(tIms, function(tI){pad(tI, 200 - dim(tI)[1], pos = 1,  "x")})
     tIms  <- lapply(tIms, function(tI){pad(tI, 200 - dim(tI)[2], pos = 1,  "y")})
     
     for(dx in 1:imN){
+      
+      if (isolateCell){
+      tryCatch({
+        # Function call that might fail
+        tIms[[dx]] <- isolate_cell(tIms[[dx]], x = 100, y = 100)
+      }, error = function(e) {
+        message("An error occurred: ", e)
+      })
+        }
+      
+     
+      
       tIms[[dx]] <- draw_text(tIms[[dx]], 10, 10, gsub(".png", "", tImFn[smp[dx]]), "white", fsize =8)
+      
     }
-    
+    #browser()
     
     
     ttIms <- (vector("list", length = (length(tIms) - 1) * 2 + 1))
@@ -666,6 +679,7 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity
                                  ymin = idx - 0.78, ymax = idx + 0.18) 
     
   }
+  #browser()
   
   # 5 make the heatmap
   brkN <- 11
@@ -933,8 +947,8 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity
 }
 
 ## Function to isolate a cell in an image
-isolate_cell <- function(I, x = 50, y = 50){
-  browser()
+isolate_cell <- function(image, x = 50, y = 50){
+  ##browser()
   # Split the image into its three channels (Red, Green, Blue)
   r <- R(image)
   g <- G(image)
@@ -969,5 +983,7 @@ isolate_cell <- function(I, x = 50, y = 50){
   largest_component_mask <- labeled_image == largest_component
   
   out_im <- imappend(list(r*largest_component_mask, g*largest_component_mask, b*largest_component_mask), "c")
+  
+  return(out_im)
   
 }
