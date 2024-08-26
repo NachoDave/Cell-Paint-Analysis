@@ -127,6 +127,56 @@ ggsave("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Resul
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+library(Rtsne)
+
+# Load required libraries
+library(Rtsne)
+
+
+# Perform t-SNE
+tsne_result <- Rtsne(as.matrix(WT_Cis_Cells_CmbNorm[, datColsCmb]), dims = 2, perplexity = 70, verbose = TRUE)
+
+# Create a data frame with t-SNE results
+tsne_df <- data.frame(tsne_result$Y, cell_line = WT_Cis_Cells_CmbNorm$cell_line)  # Assuming "Category" is your category column
+
+# Plot using ggplot
+ggplot(tsne_df, aes(x = X1, y = X2, color = factor(cell_line))) +
+  geom_point() +
+  scale_color_manual(values = c("red", "blue")) +  # Specify colors for the categories
+  labs(title = "t-SNE Plot", x = "t-SNE Dimension 1", y = "t-SNE Dimension 2")
+
+```
+
+## PCA untreated
+```{r}
+set.seed(432)
+#library(Rtsne)
+
+## 
+smpN <- 10000 # number of cells from each treatment/dose
+
+## Combined normalization
+WT_Cis_Cells_CmbNormUT <- WT_Cis_CisplatinDoxUntreatedNrm[which(grepl("untreated", WT_Cis_CisplatinDoxUntreatedNrm$Treatment)), ] %>% group_by(Dose, cell_line) %>% slice_sample(n = smpN)
+
+WT_Cis_Cells_CmbNormPCAUT <- prcomp(as.matrix(WT_Cis_Cells_CmbNormUT[, datColsCmb]), scale. = F)
+
+WT_Cis_Cells_CmbNormPCAUTDf <- cbind(WT_Cis_Cells_CmbNormUT[,1:13], 
+                                          data.frame(PC1 = WT_Cis_Cells_CmbNormPCAUT$x[,1], 
+                                                     PC2 = WT_Cis_Cells_CmbNormPCAUT$x[,2], 
+                                                     PC3 = WT_Cis_Cells_CmbNormPCAUT$x[,3]))
+
+WT_Cis_Cells_CmbNormPCAUTDf$Dose <- factor(as.numeric(WT_Cis_Cells_CmbNormPCAUTDf$Dose), levels = sort(unique(as.numeric(WT_Cis_Cells_CmbNormPCAUTDf$Dose))))
+
+varExplained <- 100*WT_Cis_Cells_CmbNormPCAUT$sdev^2/sum(WT_Cis_Cells_CmbNormPCAUT$sdev^2)
+
+ggplot(WT_Cis_Cells_CmbNormPCAUTDf, aes(x = PC1, y = PC2,  color = cell_line,)) + 
+    geom_point(size= 0.5) + xlab(paste("PC1: Variance Explained = ", round(varExplained[1], 2), "%")) + theme_bw() +  xlim(-60, 110) + ylim(-100, 70) +
+                               ylab(paste("PC2: Variance Explained = ", round(varExplained[2], 1), "%")) + ggtitle("WT+Cis combined Normalization") + guides(colour = guide_legend(override.aes = list(size=10)))
+
+ggsave("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots/Cell_Level_UntreatedPCs.png", width = 10, height = 5)
+```
+
 
 ## Make PCA derived datasets 
 ```{r}
@@ -199,8 +249,8 @@ pcCmbFeatures <- unique(c(names(correlatedFeaturesPC1_low_Cmbcell), names(correl
 # wt_cis_cmb_SOM_AreaShape_codes25 <- wt_cis_cmb_SOM_AreaShape25$codes[[1]]
 # 
 # ## All features
-# wt_cis_cmb_SOM_all_features25 <- cell_paint_som(WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ], datColsCmb, xDim = 5, yDim = 5, seed = 42)
-# wt_cis_cmb_SOM_all_features_codes25 <- wt_cis_cmb_SOM_all_features25$codes[[1]]
+wt_cis_cmb_SOM_all_features25 <- cell_paint_som(WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ], datColsCmb, xDim = 5, yDim = 5, seed = 42)
+wt_cis_cmb_SOM_all_features_codes25 <- wt_cis_cmb_SOM_all_features25$codes[[1]]
 
 ```
 
@@ -241,23 +291,23 @@ Prepare inputs for making image pathches
 ## Meta data
 # meta_dat_all_cells <- WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), metColsCmb]
 # meta_dat_all_cells$FilenameCyto <- gsub("UV - DAPI","Green - dsRed" , meta_dat_all_cells$FilenameDNA)
-# 
+#
 # meta_dat_PC_selection <- WT_Cis_Cells_CmbNorm[, metColsCmb]
 # meta_dat_PC_selection$FilenameCyto <- gsub("UV - DAPI","Green - dsRed" , meta_dat_PC_selection$FilenameDNA)
-# 
+#
 # ## Check segmentation file exists
-# segImPthAll <- paste0(meta_dat_all_cells$Segmentationpath, 
+# segImPthAll <- paste0(meta_dat_all_cells$Segmentationpath,
 #                       str_replace(meta_dat_all_cells$FilenameDNA, pattern = '.tif', paste0('_', meta_dat_all_cells$cell_line, '.jpeg')))
 # segImPthAllExists <- file.exists(segImPthAll)
-# 
-# segImPthSelection <- paste0(meta_dat_PC_selection$Segmentationpath, 
+#
+# segImPthSelection <- paste0(meta_dat_PC_selection$Segmentationpath,
 #                       str_replace(meta_dat_PC_selection$FilenameDNA, pattern = '.tif', paste0('_', meta_dat_PC_selection$cell_line, '.jpeg')))
 # segImPthSelectionExists <- file.exists(segImPthSelection)
-# 
+#
 # ## Keep nuclocs and metadata for the cells where segmentation images exist (comment for all cells)
 # meta_dat_all_cells <- meta_dat_all_cells[segImPthAllExists,]
 # meta_dat_PC_selection <- meta_dat_PC_selection[segImPthSelectionExists,]
-# 
+#
 # ## Nucleus locations
 # nucLocs_all_cells <- dplyr::inner_join(meta_dat_all_cells, nucLocs, by = c("FilenameDNA" = "FileName_DNA", "ObjectNumber_nuc" = "ObjectNumber_nuc"))
 # nucLocs_PC_selection <- dplyr::inner_join(meta_dat_PC_selection, nucLocs, by = c("FilenameDNA" = "FileName_DNA", "ObjectNumber_nuc" = "ObjectNumber_nuc"))
@@ -535,14 +585,14 @@ pheatmap(wt_cis_cmb_SOM_top_pcs36$codes[[1]], show_colnames =  TRUE, breaks = br
 ## Plot features
 ```{r}
 ## All features
-imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//all_features/25_node/",
-              wt_cis_cmb_SOM_all_features25,
-              WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
-              metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
-              "All_features_25_",
-              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
-              "all_features_25_clst25.png",  cut = 25, imN = 5, feature_type = "allFeatures")
-# 
+# imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//all_features/25_node/",
+#               wt_cis_cmb_SOM_all_features25,
+#               WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
+#               metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
+#               "All_features_25_",
+#               "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
+#               "all_features_25_clst25.png",  cut = 25, imN = 5, feature_type = "allFeatures")
+# # 
 imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//all_features/25_node/",
               wt_cis_cmb_SOM_all_features25,
               WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
@@ -550,49 +600,65 @@ imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/
               "All_features_25_",
               "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
               "all_features_25_clst12.png",  cut = 12, imN = 5, feature_type = "allFeatures")
-# 
+#
 imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//all_features/25_node/",
               wt_cis_cmb_SOM_all_features25,
               WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
               metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
               "All_features_25_",
-              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots/all_features/",
+              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
               "all_features_25_clst6.png",  cut = 6, imN = 5, feature_type = "allFeatures")
 # 
 # 
 # ## AreaShape features
-imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//areashape_features//25_node/",
-              wt_cis_cmb_SOM_AreaShape25,
-              WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
-              metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
-              "AreaShape_25_",
-              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots/areaShape/",
-              "all_features_25_clst25.png",  cut = 25, imN = 5, feature_type = "AreaShape")
+# imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//areashape_features//25_node/",
+#               wt_cis_cmb_SOM_AreaShape25,
+#               WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
+#               metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
+#               "AreaShape_25_",
+#               "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
+#               "AreaShape_25_clst25.png",  cut = 25, imN = 5, feature_type = "AreaShape")
 
 imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//areashape_features//25_node/",
               wt_cis_cmb_SOM_AreaShape25,
               WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
               metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
               "AreaShape_25_",
-              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots/areaShape/",
-              "all_features_25_clst12.png",  cut = 12, imN = 5, feature_type = "AreaShape")
+              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
+              "AreaShape_25_clst12.png",  cut = 12, imN = 5, feature_type = "AreaShape")
+
+imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//areashape_features//25_node/",
+              wt_cis_cmb_SOM_AreaShape25,
+              WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
+              metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
+              "AreaShape_25_",
+              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
+              "AreaShape_25_clst6.png",  cut = 6, imN = 5, feature_type = "AreaShape")
 
 ## Top PC features
+# imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//top_features_from_PCs/25_node/",
+#               wt_cis_cmb_SOM_top_pc_features25,
+#               WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
+#               metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
+#               "TopPC_feats_25_",
+#               "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
+#               "topPC_features_25_clst25.png",  cut = 25, imN = 5, feature_type = "allFeatures")
+# 
 imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//top_features_from_PCs/25_node/",
               wt_cis_cmb_SOM_top_pc_features25,
               WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
               metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
               "TopPC_feats_25_",
-              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots/TopPC_features//",
-              "topPC_features_25_clst25.png",  cut = 25, imN = 5, feature_type = "allFeatures")
+              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
+              "topPC_features_25_clst12.png",  cut = 12, imN = 5, feature_type = "allFeatures")
 
 imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//top_features_from_PCs/25_node/",
               wt_cis_cmb_SOM_top_pc_features25,
               WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
               metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
               "TopPC_feats_25_",
-              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots/TopPC_features//",
-              "topPC_features_25_clst12.png",  cut = 12, imN = 5, feature_type = "allFeatures")
+              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
+              "topPC_features_25_clst6.png",  cut = 6, imN = 5, feature_type = "allFeatures")
 
 ## Top PCs
 # imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//top_PCs//25_node/",
@@ -603,7 +669,97 @@ imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/
 #               "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots/TopPCs///",
 #               "topPCs_25_clst25.png",  cut = 25, imN = 5, feature_type = "None")
 
+
+
+# imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//all_features/16_node/",
+#               wt_cis_cmb_SOM_all_features16,
+#               WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
+#               metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
+#               "All_features_16_",
+#               "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/",
+#               "all_features_16_clst16.png",  cut = 25, imN = 5, feature_type = "allFeatures")
+
 ```
+## Plots with cell percent per SOM class
+```{r}
+## Im
+cell_25_all_feat_info <- WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), metColsCmb]
+cell_25_all_feat_info$som_class <- wt_cis_cmb_SOM_all_features25$unit.classif
+
+cell_25_all_feat_info_grps <- cell_25_all_feat_info %>% group_by(cell_line, Dose, som_class) %>% count() %>% summarise(nn = sum(n)) # %>% mutate(percentage_total = 100*nn/sum(nn)) 
+cell_25_all_feat_info_grps$Dose <- factor(cell_25_all_feat_info_grps$Dose, c("0", "500", "2000", "5000", "10000", "20000", "40000", "80000"))
+cell_25_all_feat_info_grps$cell_line <- factor(cell_25_all_feat_info_grps$cell_line, c("WT", "Cis"))
+som_class_sel <- c(8, 3, 2, 14, 15, 24, 17, 23, 22, 20)
+
+for (dx in som_class_sel){
+    
+  ## Bubble plots
+    tDf <- cell_25_all_feat_info_grps[cell_25_all_feat_info_grps$som_class == dx,]
+    tDf$Percent <- 100*tDf$nn/sum(tDf$nn)
+    
+    ggplot(tDf, aes(x = Dose, y = cell_line,  color = cell_line)) + 
+      geom_point(aes(size = Percent), stroke = 0) + geom_text(size = 3, color= "black", aes(label = round(Percent, 2)), vjust = 2.5) + 
+      ylab("Cell line") + xlab("Dose (nm)") + theme(axis.text.x = element_text(angle = 90)) + ggtitle(paste("Percent of cluster ", dx, "by cell line and dose")) + 
+  scale_size_identity() 
+    
+    
+    ggsave(paste0("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/Percent_cells_inCluster", dx , ".png"),
+           height = 5, width = 12)
+    
+    ## Make quick comp image
+    
+    
+    
+}
+
+
+
+```
+## Make comp image
+```{r}
+imN <-3
+whiteIm <- as.cimg(rep(1, 3*5*200), x = 5, y = 200, cc = 3) # white image for spacing
+som_class_sel <- 20
+for (idx in som_class_sel){
+
+  
+
+  tImDir <- dir(paste0("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/all_features/25_node/All_features_25_", idx), full.names = TRUE, )
+  tImFn <- dir(paste0("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/all_features/25_node/All_features_25_", idx), full.names = FALSE, )
+
+  #smp <- sample(length(tImDir), imN)
+  if (length(tImFn) >= imN){smp <- sample(length(tImDir), 2*imN)} else {smp <- sample(length(tImDir), 2*imN, replace = TRUE)}
+
+  tIms <- lapply(tImDir[smp], load.image) # load images
+  tIms <- lapply(tIms, function(tI){imsub(tI, x > (dim(tI)[1]/2 + 1), y > (dim(tI)[2]/2 + 1))})
+  tIms  <- lapply(tIms, function(tI){pad(tI, 200 - dim(tI)[1], pos = 1,  "x")})
+  tIms  <- lapply(tIms, function(tI){pad(tI, 200 - dim(tI)[2], pos = 1,  "y")})
+
+  for(dx in 1:(2*imN)){
+      tIms[[dx]] <- draw_text(tIms[[dx]], 10, 10, gsub(".png", "", tImFn[smp[dx]]), "white", fsize =8)
+    }
+
+  ttIms <- (vector("list", length = (length(tIms)/2 - 1) * 2 + 1))
+  ttIms2 <- ttIms
+  
+  #browser()
+
+  for (i in 1:3) {
+    ttIms[[(i - 1) * 2 + 1]] <- tIms[[i]]
+    if (i < 3) {
+      ttIms[[(i - 1) * 2 + 2]] <- whiteIm
+    }
+    ttIms2[[(i - 1) * 2 + 1]] <- tIms[[i + 3]]
+    if (i < 3) {
+      ttIms2[[(i - 1) * 2 + 2]] <- whiteIm
+    }
+  }
+  
+  im <- imappend(list(imappend(ttIms, axis = "x"), imappend(ttIms2, axis = "x")), axis = "y")
+  save.image(im, paste0("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM_Plots2/compSOM_Image_25Allfeat_", idx, ".png"))
+}
+```
+
 
 
 

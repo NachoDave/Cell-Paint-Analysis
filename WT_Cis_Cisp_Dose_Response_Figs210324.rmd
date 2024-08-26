@@ -1,0 +1,976 @@
+---
+title: "Figures For Cell paint SOM paper"
+author: "David James"
+date: "21/03/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(Rtsne)
+
+library(dplyr)
+library(data.table)
+library(ggplot2)
+library(reshape2)
+library(caret)
+library(kohonen)
+library(igraph)
+library(pheatmap)
+library(patchwork)
+library(viridis)
+library(gridExtra)
+source("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/RScripts_011122/cellPaintFunctions.r")
+source("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/RScripts_011122/cellPaintUnsupervisedFunctions.r")
+```
+
+## 
+```{r}
+sav_pth <- "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/Figures/"
+
+save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
+    stopifnot(!missing(x))
+    stopifnot(!missing(filename))
+    pdf(filename, width=width, height=height)
+    grid::grid.newpage()
+    grid::grid.draw(x$gtable)
+    dev.off()
+}
+
+wt_select_col =  "#F0F921FF" # yellow
+wt_col = "#0D0887FF" # dark blue
+cis_select_col = "#ED7953FF" # orange
+cis_col = "#9C179EFF" # purple
+
+
+```
+
+```{r}
+wt_untreated = WT_Cis_CisplatinDoxUntreatedNrm[WT_Cis_CisplatinDoxUntreatedNrm$cell_line == 'WT' & WT_Cis_CisplatinDoxUntreatedNrm$Dose == 0, ]
+cis_untreated = WT_Cis_CisplatinDoxUntreatedNrm[WT_Cis_CisplatinDoxUntreatedNrm$cell_line == 'Cis' & WT_Cis_CisplatinDoxUntreatedNrm$Dose == 0, ]
+
+wt_cis_dose0Nrm = WT_Cis_CisplatinDoxUntreatedNrm[WT_Cis_CisplatinDoxUntreatedNrm$Dose == 0, ]
+```
+
+## Well level calculations
+```{r}
+WT_CisplatinUntreatedNrmMed <- WT_CisplatinUntreatedNrm %>% group_by(plate, Metadata_Well_nuc, Treatment, Dose, cell_line) %>% summarise_at(datColsInd, median)
+
+Cis_CisplatinUntreatedNrmMed <- Cis_CisplatinUntreatedNrm %>% group_by(plate, Metadata_Well_nuc, Treatment, Dose, cell_line) %>% summarise_at(datColsInd, median)
+
+WT_Cis_CisplatinDoxUntreatedNrmMed <- WT_Cis_CisplatinDoxUntreatedNrm %>% group_by(plate, Metadata_Well_nuc, Treatment, Dose, cell_line) %>% summarise_at(datColsCmb, median)
+
+## WT and Cisplatin normed
+WT_CisplatinUntreatedNrmMedPCA_CmbNrm <- prcomp(as.matrix(WT_Cis_CisplatinDoxUntreatedNrmMed[grepl('untreated|Cisplatin', WT_Cis_CisplatinDoxUntreatedNrmMed$Treatment), datColsCmb]))
+
+WT_CisplatinUntreatedNrmMedPCA_CmbNrmDf <- cbind(WT_Cis_CisplatinDoxUntreatedNrmMed[grepl('untreated|Cisplatin', WT_Cis_CisplatinDoxUntreatedNrmMed$Treatment),1:5], 
+                                          data.frame(PC1 = WT_CisplatinUntreatedNrmMedPCA_CmbNrm$x[,1], 
+                                                     PC2 = WT_CisplatinUntreatedNrmMedPCA_CmbNrm$x[,2], 
+                                                     PC3 = WT_CisplatinUntreatedNrmMedPCA_CmbNrm$x[,3]))
+
+WT_CisplatinUntreatedNrmMedPCA_CmbNrmDf$Dose <- factor(as.numeric(WT_CisplatinUntreatedNrmMedPCA_CmbNrmDf$Dose), levels = sort(unique(as.numeric(WT_CisplatinUntreatedNrmMedPCA_CmbNrmDf$Dose))))
+
+varExplained_well_level <- 100*WT_CisplatinUntreatedNrmMedPCA_CmbNrm$sdev^2/sum(WT_CisplatinUntreatedNrmMedPCA_CmbNrm$sdev^2)
+```
+
+
+##  Figure 2 - well level
+a) 
+b) 
+c) 
+d) Heatmap WT
+e) Heatmap Cis
+
+```{r, fig.width=16, fig.height=6}
+brkN <- 31
+colors <- colorRampPalette(c("blue", "white","red"))(brkN)
+breaks <- seq(-5, 5, length.out = brkN)
+
+All_feature_Grps <- get_feature_groups(colnames(wt_untreated), c( "Granularity", "Intensity", "RadialDistribution", "Texture"),
+                   c("DNA", "CytoSkel", "Mitochondria", "ER"), c("nuc", "cell", "cyto"))
+
+All_feature_Grps <- All_feature_Grps[order(All_feature_Grps$group),]
+All_feature_Grps_ColN <- cumsum(table(All_feature_Grps$group))
+colnames(All_feature_Grps) <- c("Feature Group", "feature")
+
+# cell level of PCA
+ggplot(WT_CisplatinUntreatedNrmMedPCA_CmbNrmDf, aes(x = PC1, y = PC2,  color = Dose, shape = cell_line)) + 
+    geom_point(size= 3) + xlab(paste("PC1: Variance Explained = ", round(varExplained[1], 2), "%")) + theme_bw() + 
+  theme(text = element_text(size = 8)) + scale_fill_manual(values = c("blue", "red")) + labs(color = "Dose (nM)", shape = "Cell line") +
+                               ylab(paste("PC2: Variance Explained = ", round(varExplained[2], 1), "%"))
+
+ggsave(paste0(sav_pth, "/Figure 2 panels/PCA_well_level.png"), height = 9, width = 16, units = "cm")
+
+# d
+# pheatmap(as.matrix(wt_untreated[1:300, All_feature_Grps$feature]), cluster_rows = F, cluster_cols = F, show_rownames = F, show_colnames = F, annotation_col = All_feature_Grps[, 1, drop = FALSE],
+#          gaps_col = All_feature_Grps_ColN, breaks = breaks, color = colors)
+
+# e
+# pheatmap(as.matrix(cis_untreated[1:300, All_feature_Grps$feature]), cluster_rows = F, cluster_cols = F, show_rownames = F, show_colnames = F, annotation_col = All_feature_Grps[, 1, drop = FALSE],
+#          gaps_col = All_feature_Grps_ColN, breaks = breaks, color = colors)
+
+# d/e combined pheatmap of cells
+nnn= 200
+mat = as.matrix(rbind(wt_untreated[1:nnn, All_feature_Grps$feature], cis_untreated[1:nnn, All_feature_Grps$feature]))
+hm = pheatmap(mat, 
+         cluster_rows = T, cluster_cols = F, show_rownames = F, show_colnames = F, annotation_col = All_feature_Grps[, 1, drop = FALSE],
+         gaps_col = All_feature_Grps_ColN, breaks = breaks, color = colors, annotation_row = data.frame(Cell_line = as.factor(c(rep('WT', nnn), rep('Cis', nnn))), row.names = rownames(mat)), annotation_colors = list(`Cell_line` = c(WT = wt_col, Cis = cis_col)))
+
+save_pheatmap_pdf(hm, paste0(sav_pth, "Figure 2 panels/", "Figure2_feature_hm_leg.pdf"), width=12, height=10)
+save_pheatmap_pdf(hm, paste0(sav_pth, "Figure 2 panels/", "Figure2_feature_hm_4height.pdf"), width=12, height=4)
+```
+
+
+```{r}
+### Top PCA components
+loadings_pc1 <- WT_Cis_Cells_CmbNormPCA$rotation[, 'PC1']
+loadings_pc2 <- WT_Cis_Cells_CmbNormPCA$rotation[, 'PC2']
+loadings_pc3 <- WT_Cis_Cells_CmbNormPCA$rotation[, 'PC2']
+
+# Get the top 15 features contributing to PC1
+top_15_features_PC1 <- sort(abs(loadings_pc1), decreasing = TRUE)[1:15]
+top_15_features_PC2 <- sort(abs(loadings_pc2), decreasing = TRUE)[1:15]
+top_15_features_PC3 <- sort(abs(loadings_pc3), decreasing = TRUE)[1:15]
+
+top_features_pca <- unique(c(names(top_15_features_PC1), 
+                           names(top_15_features_PC2),
+                           names(top_15_features_PC3)))
+
+top_features_pca_df1 <- data.frame(features = top_features_pca,
+                                   loading = WT_Cis_Cells_CmbNormPCA$rotation[top_features_pca, 'PC1'],
+                                   PC = 'PC1')
+
+top_features_pca_df2 <- data.frame(features = top_features_pca,
+                                   loading = WT_Cis_Cells_CmbNormPCA$rotation[top_features_pca, 'PC2'],
+                                   PC = 'PC2')
+
+top_features_pca_df3 <- data.frame(features = top_features_pca,
+                                   loading = WT_Cis_Cells_CmbNormPCA$rotation[top_features_pca, 'PC3'],
+                                   PC = 'PC3')
+
+top_features_pca_df <- rbind(top_features_pca_df1,
+                             top_features_pca_df2,
+                             top_features_pca_df3)
+
+top_features_pca_df$features <- factor(top_features_pca_df$features, levels = top_features_pca_df1$features)
+
+## label data
+label_data <- top_features_pca_df[1:nrow(top_features_pca_df1),]
+label_data$id <- 1:nrow(label_data)
+
+number_of_bar <- nrow(label_data)
+angle <- 90 - 360 * (label_data$id-0.5) /number_of_bar     # I substract 0.5 because the letter must have the angle of the center of the bars. Not extreme right(1) or extreme left (0)
+label_data$hjust <- ifelse( angle < -90, -1, 0)
+label_data$angle <- ifelse(angle < -90, angle+180, angle)
+label_data$value <- (top_features_pca_df[, 1:2] %>% dplyr::group_by(features) %>% summarise(value = max(loading)))$value
+
+
+### plot PCs
+
+ggplot(top_features_pca_df, aes(x = features, y = loading, fill = PC)) + 
+  geom_col(position = "dodge") + theme_minimal() +
+   theme(axis.text.x = element_text(angle = 66, hjust = 1, size = 6), text = element_text(size = 7)) + xlab("Feature") + ylab("PC loading") +
+  scale_fill_viridis_d(option = "C")
+
+ggsave(paste0(sav_pth, "Figure 2 panels/", "PC_Loadings.png"), width = 20, height = 10, units = "cm")
+   # coord_polar() +
+  # theme(
+  #   legend.position = "none",
+  #   axis.text = element_blank(),
+  #   axis.title = element_blank(),
+  #   panel.grid = element_blank(),
+  #   plot.margin = unit(rep(-1,4), "cm")
+  # ) #+
+  # geom_text(data=label_data, aes(x=id, y=value, label=features, hjust=0), color="black", fontface="bold",alpha=0.6, size=1.5, angle= angle, inherit.aes = FALSE )# + ylim(-0.3,1)
+    # geom_text(data=label_data, aes(x=id2, y=value, label=features, hjust=0), color="black", fontface="bold",alpha=0.6, size=1.5, angle= 90, inherit.aes = FALSE )# + ylim(-0.3,1)
+  
+PCA_feature_corrs <- WT_Cis_CorrelatedFeatures_CmbNrm[levels(top_features_pca_df$features)]
+  PCA_feature_corrs_df <- data.frame(
+Representative_Feature = names(PCA_feature_corrs),
+Correlated_Feature = sapply(PCA_feature_corrs, function(x) paste(x, collapse = "|"))
+)
+
+```
+
+## Figure 3 - cell level
+a) PCA - WT and Cis untreated
+b) PCA WT Dose
+c) PCA Cis Dose
+d) t-sne? - make grid plot with alpha of the non-selected doses as lo
+
+```{r}
+# Sampling cells to perform pca and tsne
+
+# WT_Cis_CisplatinDoxUntreatedNrm contains all cells (407244)
+# WT_Cis_CisplatinUntreatedNrm contains only untreated and cisplatin treated cells (263887)
+# WT_Cis_Cells_CmbNorm contains sampled cells (smpN*doses*cell lines)
+
+WT_Cis_CisplatinUntreatedNrm <- WT_Cis_CisplatinDoxUntreatedNrm[which(!grepl("Doxorubicin", WT_Cis_CisplatinDoxUntreatedNrm$Treatment)), ]
+WT_Cis_CisplatinUntreatedNrm$SOM_class <- wt_cis_cmb_SOM_all_features25$unit.classif # add in the SOM classs (note this os the last column, but not in dat cols)
+
+set.seed(432)
+#library(Rtsne)
+
+## 
+smpN <- 5000 # number of cells from each treatment/dose
+
+# Untreated PCA
+wt_cis_dose0NrmSmp <- wt_cis_dose0Nrm %>% group_by(Dose, cell_line) %>% slice_sample(n = smpN)
+
+wt_cis_dose0Nrm_PCA <- prcomp(as.matrix(wt_cis_dose0Nrm[, datColsCmb]), scale. = F)
+
+wt_cis_dose0Nrm_PCADf <- cbind(wt_cis_dose0Nrm[,1:13], 
+                                          data.frame(PC1 = wt_cis_dose0Nrm_PCA$x[,1], 
+                                                     PC2 = wt_cis_dose0Nrm_PCA$x[,2], 
+                                                     PC3 = wt_cis_dose0Nrm_PCA$x[,3]))
+
+wt_cis_dose0Nrm_PCADf$Dose <- factor(as.numeric(wt_cis_dose0Nrm_PCADf$Dose), levels = sort(unique(as.numeric(wt_cis_dose0Nrm_PCADf$Dose))))
+
+varExplained_Dose0 <- 100*wt_cis_dose0Nrm_PCA$sdev^2/sum(wt_cis_dose0Nrm_PCA$sdev^2)
+
+## Treated sampled PCA
+
+WT_Cis_Cells_CmbNorm <- WT_Cis_CisplatinUntreatedNrm %>% group_by(Dose, cell_line) %>% slice_sample(n = smpN)
+
+WT_Cis_Cells_CmbNormPCA <- prcomp(as.matrix(WT_Cis_Cells_CmbNorm[, datColsCmb]), scale. = F)
+
+WT_Cis_Cells_CmbNormPCADf <- cbind(WT_Cis_Cells_CmbNorm[,1:13], 
+                                          data.frame(PC1 = WT_Cis_Cells_CmbNormPCA$x[,1], 
+                                                     PC2 = WT_Cis_Cells_CmbNormPCA$x[,2], 
+                                                     PC3 = WT_Cis_Cells_CmbNormPCA$x[,3]))
+
+WT_Cis_Cells_CmbNormPCADf$Dose <- factor(as.numeric(WT_Cis_Cells_CmbNormPCADf$Dose), levels = sort(unique(as.numeric(WT_Cis_Cells_CmbNormPCADf$Dose))))
+
+varExplained <- 100*WT_Cis_Cells_CmbNormPCA$sdev^2/sum(WT_Cis_Cells_CmbNormPCA$sdev^2)
+
+## T-SNE all samples
+tsne_result <- Rtsne(as.matrix(WT_Cis_Cells_CmbNorm[, datColsCmb]), dims = 2, perplexity = 60, theta=0.5,  verbose = TRUE)
+
+# Create a data frame with t-SNE results
+tsne_df <- data.frame(tsne_result$Y, cell_line = WT_Cis_Cells_CmbNorm$cell_line)
+
+# tsne_result_perDefault <- Rtsne(as.matrix(WT_Cis_Cells_CmbNorm[, datColsCmb]), dims = 2, verbose = TRUE)
+# 
+# # Create a data frame with t-SNE results
+# tsne_df_perDefault <- data.frame(tsne_result_perDefault$Y, cell_line = WT_Cis_Cells_CmbNorm$cell_line)
+```
+
+```{r}
+xjs = WT_Cis_CisplatinUntreatedNrm %>% group_by(cell_line, Dose, SOM_class, Metadata_Well_nuc) %>% summarise(count = n())
+
+
+write.csv(xjs, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/all_features/Som_class_counts_wells.csv")
+
+```
+
+```{r, fig.height=10, fig.width = 8}
+# Figure 3a Untreated PCA
+ggplot(wt_cis_dose0Nrm_PCADf[sample(nrow(wt_cis_dose0Nrm_PCADf), nrow(wt_cis_dose0Nrm_PCADf)), ], aes(x = PC1, y = PC2,  color = cell_line,)) +
+    geom_point(size= 0.2) + xlab(paste("PC1: Variance Explained = ", round(varExplained_Dose0[1], 2), "%")) + theme_bw() + theme(text = element_text(size = 8)) +
+  xlim(-50, 110) + #ylim(-100, 70) +
+                               ylab(paste("PC2: Variance Explained = ", round(varExplained_Dose0[2], 1), "%")) + guides(colour = guide_legend(override.aes = list(size=5))) + scale_colour_manual(values = c("WT" = wt_col, "Cis" = cis_col)) + labs(color = "Cell line")
+
+ggsave(paste0(sav_pth, "Figure 3 panels/", "Figure3_untreatedPCA_cell_Level.png"), height = 6, width = 9, units = "cm")
+
+# Figure 3b treated PCA
+ggplot(WT_Cis_Cells_CmbNormPCADf[sample(nrow(wt_cis_dose0Nrm_PCADf), nrow(wt_cis_dose0Nrm_PCADf)), ], aes(x = PC1, y = PC2,  color = cell_line)) +
+    geom_point(size= 0.2) + xlab(paste("PC1: Variance Explained = ", round(varExplained[1], 2), "%")) + theme_bw() + theme(text = element_text(size = 8)) +  xlim(-50, 110) + ylim(-50, 70) +
+                                ylab(paste("PC2: Variance Explained = ", round(varExplained[2], 1), "%")) +  
+  guides(colour = guide_legend(override.aes = list(size=5))) + scale_colour_manual(values = c("WT" = wt_col, "Cis" = cis_col)) + labs(color = "Cell line")
+
+ggsave(paste0(sav_pth, "Figure 3 panels/", "Figure3_treatedPCA_cell_Level.png"), height = 6, width = 9, units = "cm")
+
+#WT_Cis_Cells_CmbNormPCADf
+
+
+plot_Highlighted_scatter <- function(df, chng_field, chng_field_vals, cell_line = "WT", x_v = 'PC1', y_v = 'PC2', fig_title = 'Dose', cols = c(wt_select_col, wt_col, cis_col), 
+                                     xmin = -50, xmax = 110, ymin = -50, ymax = 50){
+  ## 
+  if (cell_line == "WT"){
+    cell_line_x = "Cis"
+  } else {
+    cell_line_x = "WT"
+  }
+  
+  plts = list()
+  
+  for (dx in 1:length(chng_field_vals)){
+  #browser()
+  df$cells = df$cell_line
+  df$cells[df$cells == cell_line] = paste(cell_line, chng_field, 'not', chng_field_vals[dx])
+  df$cells[df[chng_field] == as.character(chng_field_vals[dx]) & df$cell_line == cell_line] <- paste(cell_line, chng_field, chng_field_vals[dx])
+  
+  df1 <- df[df$cells == paste(cell_line, chng_field, chng_field_vals[dx]),]
+  df2 <- df[!(df$cells == paste(cell_line, chng_field, chng_field_vals[dx])),]
+    
+  df <- rbind(df2[sample(nrow(df2), nrow(df2)),], df1)
+  #browser()
+  if (cell_line == "WT"){
+  df$cells = factor(df$cells, levels = c(paste(cell_line,  chng_field, chng_field_vals[dx]),  paste(cell_line, chng_field, "not" , chng_field_vals[dx]), cell_line_x))
+  names(cols) = c(paste(cell_line,  chng_field, chng_field_vals[dx]),  paste(cell_line, chng_field, "not" , chng_field_vals[dx]), cell_line_x)
+  
+  } else {
+    df$cells = factor(df$cells, levels = c(paste(cell_line,  chng_field, chng_field_vals[dx]), cell_line_x,  paste(cell_line, chng_field, "not" , chng_field_vals[dx])))
+    names(cols) = c(paste(cell_line,  chng_field, chng_field_vals[dx]), cell_line_x,  paste(cell_line, chng_field, "not" , chng_field_vals[dx]))
+  }
+  
+  #browser()
+  
+  plts[[dx]] <- ggplot(df, aes_string(x = x_v, y = y_v,  color = 'cells')) + 
+      geom_point(size= 0.01) + xlab("") + theme_bw() +  theme() + xlim(xmin, xmax) + ylim(ymin, ymax) +
+                                 ylab("") + ggtitle(paste(cell_line, fig_title ,  chng_field_vals[dx])) + 
+    theme(legend.position = "none", plot.title = element_text(size = 9)) + scale_color_manual(values = cols)#scale_color_viridis_d(option = "C")
+  
+}
+return(plts)
+  }
+  
+
+xx <- plot_Highlighted_scatter(WT_Cis_Cells_CmbNormPCADf, 'Dose', doses)
+p1 = grid.arrange(grobs = xx, ncol = 2, )##
+
+ggsave(paste0(sav_pth, "/Figure 3 panels/", "PCA_WT_Dose_response.png"), plot= p1, height = 17, width = 10, units = "cm")
+
+yy <- plot_Highlighted_scatter(WT_Cis_Cells_CmbNormPCADf, 'Dose', doses, cell_line = "Cis")
+p2 <- grid.arrange(grobs = yy, ncol = 2)
+
+ggsave(paste0(sav_pth, "/Figure 3 panels/", "PCA_Cis_Dose_response.png"), plot= p2, height = 17, width = 10, units = "cm")
+
+# Figure 3 e WT t-SNe with dose
+
+
+# Figure 3 f CIs t-SNE with dose
+
+# FIgure 3 g dose response alpha on t-SNE
+
+
+
+
+```
+
+
+
+Figure 4 
+a) Bar chart showing how many cells per WT and Cis per som node for untreated
+b) Bar chart showing how many cells per WT and Cis per som node for treated
+```{r}
+## a Bar chart for cis and wt
+WT_Cis_SOM_Grp <- WT_Cis_CisplatinUntreatedNrm %>% group_by(cell_line, SOM_class) %>% dplyr::count()
+WT_Cis_SOM_Grp$per <- 0
+
+WT_Cis_SOM_Grp$per[WT_Cis_SOM_Grp$cell_line == "Cis"] <- 100*WT_Cis_SOM_Grp$n[WT_Cis_SOM_Grp$cell_line == "Cis"]/sum(WT_Cis_SOM_Grp$n[WT_Cis_SOM_Grp$cell_line == "Cis"])
+
+WT_Cis_SOM_Grp$per[WT_Cis_SOM_Grp$cell_line == "WT"] <- 100*WT_Cis_SOM_Grp$n[WT_Cis_SOM_Grp$cell_line == "WT"]/sum(WT_Cis_SOM_Grp$n[WT_Cis_SOM_Grp$cell_line == "WT"])
+
+ggplot(WT_Cis_SOM_Grp, aes(x = SOM_class, y = n, fill = cell_line)) + 
+  geom_bar(position="stack", stat="identity") + theme_bw() +theme(text = element_text(size = 7), legend.position = "bottom") +  scale_fill_manual(values = c("WT" = wt_col, "Cis" = cis_col)) +
+  labs(fill = "Cell Line") + ylab("Number of Cells") + xlab("SOM class index") 
+
+ggsave(paste0(sav_pth, "Figure 4 panels/", "Figure_4_bar_chart_cell_line_SOMs.png" ), height = 6, width = 8, units = "cm")
+
+ggplot(WT_Cis_SOM_Grp, aes(x = SOM_class, y = per, fill = cell_line)) + 
+  geom_bar(position = "dodge", stat="identity") + theme_bw() +theme(text = element_text(size = 7), axis.text.x = element_text(angle = 90),  legend.position = "bottom") +  scale_fill_manual(values = c("WT" = wt_col, "Cis" = cis_col)) +scale_x_continuous(breaks = 1:25) +
+  labs(fill = "Cell Line") + ylab("Percentage of cell population") + xlab("SOM class index") 
+
+ggsave(paste0(sav_pth, "Figure 4 panels/", "Figure_4_bar_chart_cell_line_SOMs_percent.png" ), height = 6, width = 8, units = "cm")
+
+## b bar chart wt
+WT_SOM_Dose_Grp <- WT_Cis_CisplatinUntreatedNrm %>% dplyr::filter(cell_line == "WT") %>% group_by(Dose, SOM_class) %>% dplyr::count()
+WT_SOM_Dose_Grp$Dose = factor(WT_SOM_Dose_Grp$Dose, levels = c("0", "500", "2000", "5000", "10000", "20000", "40000", "80000"))
+
+ggplot(WT_SOM_Dose_Grp, aes(x = SOM_class, y = n, fill = Dose))  + 
+  geom_bar(position="stack", stat="identity") + theme_bw() + theme(text = element_text(size = 7), legend.position = "bottom")  + xlab('SOM Class') + ylab('Cell Count') + scale_fill_viridis_d(option = "C")
+
+ggsave(paste0(sav_pth, "Figure 4 panels/", "Figure_4_bar_chart_WT_dose_SOMs.png" ), height = 7, width = 8, units = "cm")
+
+
+
+
+## c bar chart cis
+Cis_SOM_Dose_Grp <- WT_Cis_CisplatinUntreatedNrm %>% dplyr::filter(cell_line == "Cis") %>% group_by(Dose, SOM_class) %>% dplyr::count()
+Cis_SOM_Dose_Grp$Dose = factor(Cis_SOM_Dose_Grp$Dose, levels = c("0", "500", "2000", "5000", "10000", "20000", "40000", "80000"))
+ggplot(Cis_SOM_Dose_Grp, aes(x = SOM_class, y = n, fill = Dose)) + 
+  geom_bar(position="stack", stat="identity") + theme_bw() + theme(text = element_text(size = 7), legend.position = "bottom")  + xlab('SOM Class') + ylab('Cell Count') + scale_fill_viridis_d(option = "C")
+
+ggsave(paste0(sav_pth, "Figure 4 panels/", "Figure_4_bar_chart_Cis_dose_SOMs.png" ), height = 7, width = 8, units = "cm")
+
+## Check plate
+WT_Cis_SOM_Grp <- WT_Cis_CisplatinUntreatedNrm %>% group_by(SOM_class, plate) %>% dplyr::count()
+
+ggplot(WT_Cis_SOM_Grp, aes(x = SOM_class, y = n, fill = plate)) + 
+  geom_bar(position="stack", stat="identity")
+```
+
+```{r}
+set.seed(123)
+data <- data.frame(
+  x = rnorm(100),
+  y = rnorm(100),
+  group = sample(1:3, 100, replace = TRUE)
+)
+
+# Create ggplot
+ggplot(data, aes(x = x, y = y, color = as.factor(group), size = as.factor(group), alpha = as.factor(group), order = -as.factor(group))) +
+  geom_point() +
+  scale_size_manual(values = c(2, 5, 2)) + # Set size values for each group
+  #scale_alpha_manual(values = c(0.5, 1, 0.5)) + # Set alpha values for each group
+  theme(legend.position = "none") # Remove legend for size and alpha aesthetics
+
+
+```
+
+```{r, fig.height=7}
+
+## d
+# Perform t-SNE
+#tsne_result <- Rtsne(as.matrix(WT_Cis_Cells_CmbNorm[, datColsCmb]), dims = 2, perplexity = 70, verbose = TRUE)
+
+# Create a data frame with t-SNE results
+tsne_df <- data.frame(tsne_result$Y, cell_line = WT_Cis_Cells_CmbNorm$cell_line, dose = WT_Cis_Cells_CmbNorm$Dose, SOM_class = WT_Cis_Cells_CmbNorm$SOM_class)  # Assuming "Category" is your category column
+tsne_df$alpha = 0.0
+tsne_df$alpha[tsne_df$WT_Cis_Cells_CmbNorm.Dose == '0'] = 1000
+
+
+## Palletee 
+c25 <- c(
+  "dodgerblue2", "#E31A1C", # red
+  "green4",
+  "#6A3D9A", # purple
+  "#FF7F00", # orange
+  "black", "gold1",
+  "skyblue2", "#FB9A99", # lt pink
+  "palegreen2",
+  "#CAB2D6", # lt purple
+  "#FDBF6F", # lt orange
+  "gray70", "khaki2",
+  "maroon", "orchid1", "deeppink1", "blue1", "steelblue4",
+  "darkturquoise", "green1", "yellow4", "yellow3",
+  "darkorange4", "brown"
+)
+
+
+# Plot using ggplot
+ggplot(tsne_df, aes(x = X1, y = X2, color = factor(SOM_class))) +
+  geom_point(size = 0.1) +
+  #scale_color_manual(values = c("red", "blue")) +  # Specify colors for the categories
+  labs(title = "t-SNE Plot", x = "t-SNE Dimension 1", y = "t-SNE Dimension 2") + theme_bw() + labs(color = "SOM Class") +
+  guides(color = guide_legend(override.aes = list(size = 4)))  + scale_color_discrete(type = c25)
+
+ggsave(paste0(sav_pth, "Figure 4 panels/", "Figure4_tsne_som_class.png"), height = 10, width = 20, units = "cm")
+set.seed(44)
+ggplot(tsne_df[sample(nrow(tsne_df), nrow(tsne_df)),], aes(x = X1, y = X2, color = factor(cell_line))) +
+  geom_point(size = 0.1) +
+  #scale_color_manual(values = c("red", "blue")) +  # Specify colors for the categories
+  labs(title = "t-SNE Plot", x = "t-SNE Dimension 1", y = "t-SNE Dimension 2") + theme_bw() + labs(color = "Cell line") +
+  guides(color = guide_legend(override.aes = list(size = 4)))  + scale_color_discrete(type = c(cis_col, wt_col))
+
+ggsave(paste0(sav_pth, "Figure 4 panels/", "Figure4_tsne_cell_line.png"), height = 10, width = 20, units = "cm")
+
+# Plot using ggplot  PCA
+ggplot(WT_Cis_Cells_CmbNormPCADf, aes(x = PC1, y = PC2, color = factor(SOM_class))) +
+  geom_point(size = 0.1) +
+  #scale_color_manual(values = c("red", "blue")) +  # Specify colors for the categories
+  labs(title = "PCA Plot", x = "PC 1", y = "PC 2") + theme_bw() + labs(color = "SOM Class") +
+  guides(color = guide_legend(override.aes = list(size = 4)))  + scale_color_discrete(type = c25) + xlim(-50, 110) +
+  ylim(-50, 50)
+
+ggsave(paste0(sav_pth, "Figure 4 panels/", "Figure4_PCA_som_class.png"), height = 10, width = 20, units = "cm")
+set.seed(44)
+ggplot(WT_Cis_Cells_CmbNormPCADf[sample(nrow(WT_Cis_Cells_CmbNormPCADf), nrow(WT_Cis_Cells_CmbNormPCADf)),], aes(x = PC1, y = PC2, color = factor(cell_line))) +
+  geom_point(size = 0.1) +
+  #scale_color_manual(values = c("red", "blue")) +  # Specify colors for the categories
+  labs(title = "PCA Plot", x = "PC 1", y = "PC 2") + theme_bw() + labs(color = "Cell line") +
+  guides(color = guide_legend(override.aes = list(size = 4)))  + scale_color_discrete(type = c(cis_col, wt_col)) + xlim(-50, 110) +
+  ylim(-50, 50)
+
+ggsave(paste0(sav_pth, "Figure 4 panels/", "Figure4_PCA_cell_line.png"), height = 10, width = 20, units = "cm")
+
+
+
+# tsne_df$d = "Not focus"
+# tsne_df$d[tsne_df$dose == '500' & tsne_df$cell_line == 'Cis'] = "focus"
+# 
+# # Plot using ggplot
+# ggplot(tsne_df, aes(x = X1, y = X2, color = factor(d))) +
+#   geom_point(size = 0.6) +
+#   #scale_color_viridis_d(option = 'plasma') +
+#   #scale_color_manual(values = c("red", "blue")) +  # Specify colors for the categories
+#   labs(title = "t-SNE Plot Dose = 1000", x = "t-SNE Dimension 1", y = "t-SNE Dimension 2") + theme_bw()
+# 
+# 
+# zz <- plot_Highlighted_scatter(tsne_df, 'dose', doses, x_v = 'X1', y_v = 'X2')
+# grid.arrange(grobs = zz, ncol = 5)##
+
+# pp <- plot_Highlighted_scatter(tsne_df, 'SOM_class', 1:25, x_v = 'X1', y_v = 'X2', fig_title = "SOM Class")
+# grid.arrange(grobs = pp, ncol = 5)##
+
+```
+
+
+```{r}
+plot_Highlighted_scatter2 <- function(df, chng_field, chng_field_vals,  x_v = 'PC1', y_v = 'PC2', fig_title = 'Dose', xmin = -30, xmax = 30, ymin = -40, ymax = 40){
+  ## 
+  plts = list()
+  
+  for (dx in 1:length(chng_field_vals)){
+  #browser()
+  df$cells = df$cell_line
+  df$cells[df$cells == "WT"] = paste("WT", chng_field, 'not', chng_field_vals[dx])
+  df$cells[df[chng_field] == as.character(chng_field_vals[dx]) & df$cell_line == "WT"] <- paste("WT", chng_field, chng_field_vals[dx])
+
+  df$cells[df$cells == "Cis"] = paste("Cis", chng_field, 'not', chng_field_vals[dx])
+  df$cells[df[chng_field] == as.character(chng_field_vals[dx]) & df$cell_line == "Cis"] <- paste("Cis", chng_field, chng_field_vals[dx])
+    
+  df1 <- df[(df$cells == paste("WT", chng_field, chng_field_vals[dx]) | df$cells ==paste("Cis", chng_field, chng_field_vals[dx])),]
+  df2 <- df[!(df$cells == paste("WT", chng_field, chng_field_vals[dx]) | df$cells ==paste("Cis", chng_field, chng_field_vals[dx])),]
+    
+  df <- rbind(df2[sample(nrow(df2), nrow(df2)),], df1)
+  #browser()
+  df$cells = factor(df$cells, levels = c(paste("WT",  chng_field, chng_field_vals[dx]),  paste("WT", chng_field, "not" , chng_field_vals[dx]), paste("Cis",  chng_field, chng_field_vals[dx]),  paste("Cis", chng_field, "not" , chng_field_vals[dx])))
+
+  wt_str = paste("WT",  chng_field, chng_field_vals[dx])
+  wt_not_str = paste("WT", chng_field, "not" , chng_field_vals[dx])
+  cis_str = paste("Cis",  chng_field, chng_field_vals[dx])
+  cis_not_str = paste("Cis", chng_field, "not" , chng_field_vals[dx])
+  
+  #cols = c("#9c169c","#ff0066","orange","#f0f921" ) #"#ef7952" )
+  cols = c("#F0F921FF","#0D0887FF", "#ED7953FF",  "#9C179EFF")
+  # orange = "#ED7953FF", yellow = "#F0F921FF", blue = "#0D0887FF", purple=  "#9C179EFF"
+  #cols = c("#000004FF", "#721F81FF", "#F1605DFF", "#FCFDBFFF")
+  #cols = c("#440154FF", "#31688EFF", "#35B779FF", "#FDE725FF")
+  names(cols) = c(wt_str, wt_not_str, cis_str, cis_not_str)
+  
+  plts[[dx]] <- ggplot(df, aes_string(x = x_v, y = y_v,  color = 'cells')) + 
+      geom_point(size= 0.1) + xlab("") + theme_bw() +  xlim(xmin, xmax) + ylim(xmin, xmax) +
+                                 ylab("") + ggtitle(paste( fig_title ,  chng_field_vals[dx])) + 
+    theme(legend.position = "none", plot.title = element_text(size = 8)) + scale_color_manual(values = cols) #scale_color_viridis_d(option = "C")
+  
+}
+return(plts)
+  }
+```
+
+```{r, fig.height=10, fig.width = 10}
+ppp <- plot_Highlighted_scatter2(tsne_df, 'SOM_class', c(1:25), x_v = 'X1', y_v = 'X2', fig_title = "SOM Class")
+ppp1 = grid.arrange(grobs = ppp, ncol = 4)##
+ggsave(paste0(sav_pth, "/Figure 4 panels/", "tsne_WT_SOM_class_response.png"), plot= ppp1, height = 30, width = 21, units = "cm")
+
+
+pppp <- plot_Highlighted_scatter2(WT_Cis_Cells_CmbNormPCADf, 'SOM_class', c(1:25), fig_title = "SOM Class", xmin = -50, xmax = 110, ymin = -50, ymax = 50)
+pppp1 = grid.arrange(grobs = pppp, ncol = 4)##
+ggsave(paste0(sav_pth, "/Figure 4 panels/", "pca_WT_SOM_class_response.png"), plot= pppp1, height = 30, width = 21, units = "cm")
+
+pp <- plot_Highlighted_scatter(tsne_df, "dose", x_v = 'X1', y_v = 'X2',doses, xmin = -30, xmax = 30, ymin = -40, ymax = 40)
+p3 <- grid.arrange(grobs = pp, ncol = 2)#
+
+ggsave(paste0(sav_pth, "/Figure 3 panels/", "tsne_WT_Dose_response.png"), plot= p3, height = 17, width = 10, units = "cm")
+
+p <- plot_Highlighted_scatter(tsne_df, "dose", x_v = 'X1', y_v = 'X2',doses, cell_line = "Cis", xmin = -30, xmax = 30, ymin = -40, ymax = 40)
+p4 <- grid.arrange(grobs = p, ncol = 2)#
+
+ggsave(paste0(sav_pth, "/Figure 3 panels/", "tsne_Cis_Dose_response.png"), plot= p4, height = 17, width = 10, units = "cm")
+```
+
+```{r}
+library(cowplot)
+make_leg <- function(labs = c("WT Selected SOM class", "WT other SOM classes", "Cis Selected SOM class", "Cis other SOM classes"), cols = c("#0D0887FF","#ED7953FF", "#9C179EFF", "#F0F921FF"), tit = "Cell Line"){
+  # browser()
+  n = length(cols)
+  
+  names(cols) = labs 
+  
+  df = data.frame(x = 1:n, y = 1:n, `SOM Class` = labs, colours = cols)
+  
+  plt = ggplot(df, aes(x = x, y = y, color = labs)) + 
+  geom_point() +
+  scale_color_manual(values = cols, breaks = labs) + labs(color = tit) + guides(color = guide_legend(override.aes = list(size = 10))) 
+  
+  # Extract the legend from the ggplot object
+legend <- get_legend(plt)
+
+# Create an empty plot
+empty_plot <- ggplot() + theme_bw() + theme_void() 
+
+# Combine the empty plot and the legend
+combined_plot <- plot_grid(empty_plot, legend, ncol = 1, rel_heights = c(0.1, 1))
+
+return(combined_plot)
+  
+}
+
+l = make_leg()
+ggsave(paste0(sav_pth, "Legend_SOM_4.png"), plot = l, height = 5, width = 5, units = "cm")
+
+l = make_leg(labs = c("WT Selected Dose", "WT other Doses", "Cis"), cols = c(wt_select_col,wt_col, cis_col))
+ggsave(paste0(sav_pth, "Legend_WT_Dose_4.png"), plot = l, height = 5, width = 5, units = "cm")
+
+l = make_leg(labs = c("Cis Selected Dose", "WT", "Cis other Doses"), cols = c(wt_select_col,wt_col, cis_col))
+ggsave(paste0(sav_pth, "Legend_Cis_Dose_4.png"), plot = l, height = 5, width = 5, units = "cm")
+
+
+# labs = c("WT Selected SOM class", "WT other SOM classes", "Cis Selected SOM class", "Cis other SOM classes")
+# #cols = c("#0D0887FF","#ED7953FF", "#9C179EFF", "#F0F921FF")
+# cols = c(wt_select_col, wt_col, cis_select_col, cis_col)
+# 
+# n = length(cols)
+# 
+#   #labs = factor(labs, labels = labs)
+#   
+# 
+#   names(cols) = labs
+#   # cols = factor(cols)
+# 
+#   df = data.frame(x = 1:n, y = 1:n, `SOM Class` = labs, colours = cols)
+# 
+#   plt = ggplot(df, aes(x = x, y = y, color = labs)) +
+#   geom_point(size = 6) +
+#   scale_color_manual(values = (cols), breaks = labs) + labs(color = "Cell Line") + 
+#     guides(color = guide_legend(override.aes = list(size = 10)))
+#   plt
+```
+## Make percentage plots
+```{r}
+## Get  cell counts for WT
+No_Cells_DoseClusterWT <- WT_Cis_CisplatinUntreatedNrm[WT_Cis_CisplatinUntreatedNrm$cell_line == "WT", ] %>% group_by(Dose, SOM_class) %>% count() %>% 
+                          summarise(nn = sum(n))# %>%
+                          #mutate(percentage = nn / sum(nn))  
+
+No_Cells_DoseClusterWT[No_Cells_DoseClusterWT$Dose == "0", "nn"] <- ceiling(No_Cells_DoseClusterWT[No_Cells_DoseClusterWT$Dose == "0", "nn"]/3)
+
+No_Cells_DoseClusterWT <- No_Cells_DoseClusterWT %>% mutate(percentage = 100*nn / sum(nn))
+
+No_Cells_DoseClusterWT <- data.frame(No_Cells_DoseClusterWT)
+
+No_Cells_DoseClusterWT$Dose <- as.numeric(No_Cells_DoseClusterWT$Dose)
+No_Cells_DoseClusterWT$Dose[No_Cells_DoseClusterWT$Dose == 0] <- 100 
+No_Cells_DoseClusterWT$SOM_class <- factor((No_Cells_DoseClusterWT$SOM_class), levels = 1:25)
+
+## Get cell counts for cis
+No_Cells_DoseClusterCis <- WT_Cis_CisplatinUntreatedNrm[WT_Cis_CisplatinUntreatedNrm$cell_line == "Cis", ] %>% group_by(Dose, SOM_class) %>% count() %>% 
+                          summarise(nn = sum(n))# %>%
+                          #mutate(percentage = nn / sum(nn))  
+
+No_Cells_DoseClusterCis[No_Cells_DoseClusterCis$Dose == "0", "nn"] <- ceiling(No_Cells_DoseClusterCis[No_Cells_DoseClusterCis$Dose == "0", "nn"]/3)
+
+No_Cells_DoseClusterCis <- No_Cells_DoseClusterCis %>% mutate(percentage = 100*nn / sum(nn))
+
+No_Cells_DoseClusterCis <- data.frame(No_Cells_DoseClusterCis)
+
+No_Cells_DoseClusterCis$Dose <- as.numeric(No_Cells_DoseClusterCis$Dose)
+No_Cells_DoseClusterCis$Dose[No_Cells_DoseClusterCis$Dose == 0] <- 100 
+No_Cells_DoseClusterCis$SOM_class <- factor((No_Cells_DoseClusterCis$SOM_class), levels = 1:25)
+
+## WT percentage
+ggplot((No_Cells_DoseClusterWT)) + 
+  #geom_col(aes(x=(as.numeric(Dose)), y=percentage, fill=(SOM_class)),colour = "white", width = 0.1) +
+  geom_area(aes(x=(as.numeric(Dose)), y=percentage, fill=(SOM_class)),alpha=1 , linewidth=0.1, colour="white") +  
+  
+ylab("Percentage of cells") +
+  xlab("Dose (nm)") +
+  #ggtitle("WT cells") +
+      scale_fill_discrete(type = c25) +
+  geom_vline(xintercept = 28200, linetype = "dashed", linewidth = 1.0) +
+  annotate("text", x=28200 - 5000, y=50, label="Cis IC50", angle=90, size = 3) +
+ geom_vline(xintercept = 3430, linetype = "dashed", linewidth = 1.0) +
+  annotate("text", x=3430 - 500, y=50, label="WT IC50", angle=90, size = 3) +
+  scale_x_log10() + theme_bw() + theme(text = element_text(size = 7), legend.position = "none") 
+
+ggsave(paste0(sav_pth, "Figure 4 panels/Percentage_of_cells_SOM_class_dose_WT.png" ), width = 10, height = 5, units = "cm")
+
+## WT counts
+ggplot((No_Cells_DoseClusterWT)) + 
+  #geom_col(aes(x=(as.numeric(Dose)), y=nn, fill=(SOM_class)),colour = "white", width = 0.1) +
+  geom_area(aes(x=(as.numeric(Dose)), y=nn, fill=(SOM_class)),alpha=1 , linewidth=0.1, colour="white") +  
+ylab("Number of cells") +
+  xlab("Dose (nm)") +
+  #ggtitle("WT cells") +
+      scale_fill_discrete(type = c25) +
+  geom_vline(xintercept = 28200, linetype = "dashed", linewidth = 1.0) +
+  annotate("text", x=28200 - 5000, y=15000, label="Cis IC50", angle=90,  size = 3) +
+ geom_vline(xintercept = 3430, linetype = "dashed", linewidth = 1.0) +
+  annotate("text", x=3430 - 500, y=15000, label="WT IC50", angle=90, size = 3) +
+  scale_x_log10() + theme_bw() + theme(text = element_text(size = 7), legend.position = "none") 
+
+ggsave(paste0(sav_pth, "Figure 4 panels/Number_of_cells_SOM_class_dose_WT.png" ), width = 10, height = 5, units = "cm")
+
+## Cis percantage
+ggplot((No_Cells_DoseClusterCis)) + 
+  #geom_col(aes(x=(as.numeric(Dose)), y=percentage, fill=(SOM_class)),colour = "white", width = 0.1) +
+  geom_area(aes(x=(as.numeric(Dose)), y=percentage, fill=(SOM_class)),alpha=1 , linewidth=0.1, colour="white") +  
+  
+ylab("Percentage of cells") +
+  xlab("Dose (nm)") +
+  #ggtitle("WT cells") +
+      scale_fill_discrete(type = c25) +
+  geom_vline(xintercept = 28200, linetype = "dashed", linewidth = 1.0) +
+  annotate("text", x=28200 - 5000, y=50, label="Cis IC50", angle=90, size = 3) +
+ geom_vline(xintercept = 3430, linetype = "dashed", linewidth = 1.0) +
+  annotate("text", x=3430 - 500, y=50, label="WT IC50", angle=90, size = 3) +
+  scale_x_log10() + theme_bw() + theme(text = element_text(size = 7), legend.position = "none") 
+
+ggsave(paste0(sav_pth, "Figure 4 panels/Percentage_of_cells_SOM_class_dose_Cis.png" ), width = 10, height = 5, units = "cm")
+
+
+## Cis counts
+ggplot((No_Cells_DoseClusterCis)) + 
+  #geom_col(aes(x=(as.numeric(Dose)), y=nn, fill=(SOM_class)),colour = "white", width = 0.1) +
+  geom_area(aes(x=(as.numeric(Dose)), y=nn, fill=(SOM_class)),alpha=1 , linewidth=0.1, colour="white") +  
+ylab("Number of cells") +
+  xlab("Dose (nm)") +
+  #ggtitle("WT cells") +
+      scale_fill_discrete(type = c25) +
+  geom_vline(xintercept = 28200, linetype = "dashed", linewidth = 1.0) +
+  annotate("text", x=28200 - 5000, y=5000, label="Cis IC50", angle=90,  size = 3) +
+ geom_vline(xintercept = 3430, linetype = "dashed", linewidth = 1.0) +
+  annotate("text", x=3430 - 500, y=5000, label="WT IC50", angle=90, size = 3) +
+  scale_x_log10() + theme_bw() + theme(text = element_text(size = 7), legend.position = "none") 
+
+ggsave(paste0(sav_pth, "Figure 4 panels/Number_of_cells_SOM_class_dose_Cis.png" ), width = 10, height = 5, units = "cm")
+
+## Legend
+
+l = make_leg(labs = as.character(1:25), cols = c25, tit = "SOM Class")
+ggsave(paste0(sav_pth, "Legend_PercentCells_Dose_4.png"), plot = l, height = 5)
+
+```
+
+
+
+```{r}
+# Install necessary packages if not already installed
+# install.packages("tiff")
+# install.packages("magick")
+# install.packages("ggplot2")
+# install.packages("gridExtra")
+
+# Load the packages
+library(tiff)
+library(magick)
+library(ggplot2)
+library(gridExtra)
+library(imager)
+
+im_adjust <- function(im, min_px = 0.01, max_px = 0.99){
+  
+  qt=as.numeric(quantile(image1, c(min_px,max_px)))
+  
+  im[im < qt[1]] <- qt[1]
+  im[im > qt[2]] <- qt[2]
+  
+  im <- renorm(im)
+  
+  return(im)
+  
+}
+
+comp_im <- function(im, impth, mx_px1 = 0.9, mx_px2 = 0.9, mx_px3 = 0.85, mx_px4 = 0.85){
+  
+image1 <- load.image(paste0(imdir, im, " UV - DAPI).tif"))
+image1 <- im_adjust(image1, max_px = mx_px1)
+
+image2 <- load.image(paste0(imdir, im, " Blue - FITC).tif"))
+image2 <- im_adjust(image2, max_px = mx_px2)
+
+image3 <- load.image(paste0(imdir, im, " Green - dsRed).tif"))
+image3 <- im_adjust(image3, max_px = mx_px3)
+# 
+image4 <- load.image(paste0(imdir, im, " Red - Cy5).tif"))
+image4 <- im_adjust(image4, max_px = mx_px4)
+
+empty_image <- matrix(0, nrow = dim(image1)[1], ncol = dim(image1)[2])
+
+image1_rgb <- (imappend(list(as.cimg(empty_image), as.cimg(empty_image), as.cimg(image1)), "c"))
+image2_rgb <- (imappend(list(as.cimg(image2),as.cimg(empty_image), as.cimg(empty_image)), "c"))
+image3_rgb <- imappend(list(as.cimg(empty_image), as.cimg(image3),  as.cimg(empty_image)), "c")
+image4_rgb <- imappend(list(as.cimg(image4), as.cimg(empty_image),   as.cimg(empty_image)), "c")
+
+im_all <- (image1_rgb + image3_rgb + image2_rgb)
+
+return(im_all)
+
+#combined_ims <- imappend(list(image1_rgb, image3_rgb, image2_rgb,  image4_rgb, im_all), "x")
+}
+```
+
+```{r}
+
+imdir <- '/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/Cell Paint Ibidi 40x/Cell Paint Ibidi 40x_P1 Drugs 1to3 R1 x40_2022.05.20.15.32.52/'
+im <- "E - 03(fld 5 wv"
+
+white_image_array <- array(255, dim = c(20, 2048, 1, 3))
+
+# Convert the array into an image using as.cimg
+white_image <- as.cimg(white_image_array)
+
+# Read the grayscale TIFF images
+## Get the WT
+image1 <- load.image(paste0(imdir, im, " UV - DAPI).tif"))
+image1 <- im_adjust(image1, max_px = 0.95)
+
+image2 <- load.image(paste0(imdir, im, " Blue - FITC).tif"))
+image2 <- im_adjust(image2, max_px = 0.9)
+
+image3 <- load.image(paste0(imdir, im, " Green - dsRed).tif"))
+image3 <- im_adjust(image3, max_px = 0.8)
+
+image4 <- load.image(paste0(imdir, im, " Red - Cy5).tif"))
+image4 <- im_adjust(image4, max_px = 0.82)
+
+empty_image <- matrix(0, nrow = dim(image1)[1], ncol = dim(image1)[2])
+
+image1_rgb <- (imappend(list(as.cimg(empty_image), as.cimg(empty_image), as.cimg(image1)), "c"))
+image2_rgb <- imappend(list(as.cimg(image2), as.cimg(empty_image),  as.cimg(empty_image)), "c")
+image3_rgb <- imappend(list( as.cimg(empty_image),as.cimg(image3), as.cimg(empty_image)), "c")
+image4_rgb <- imappend(list(as.cimg(image4), as.cimg(empty_image), as.cimg(image4)), "c")
+
+im_all <- (image1_rgb + image3_rgb  + image2_rgb)
+
+# combined_ims <- imappend(list(image1_rgb, image3_rgb, image2_rgb,  image4_rgb, im_all), "x")
+combined_ims <- imappend(list(image1_rgb, white_image, image3_rgb, white_image,
+                              image2_rgb, white_image, image4_rgb, white_image,im_all), "x")
+
+save.image(combined_ims, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/Figures/Images/WT_UT_channels.jpg")
+
+```
+
+```{r}
+
+## Get the cis
+# Read the grayscale TIFF images
+
+im <- "F - 11(fld 5 wv"
+
+image1 <- load.image(paste0(imdir, im, " UV - DAPI).tif"))
+image1 <- im_adjust(image1, max_px = 0.98)
+
+image2 <- load.image(paste0(imdir, im, " Blue - FITC).tif"))
+image2 <- im_adjust(image2, max_px = 0.93)
+
+image3 <- load.image(paste0(imdir, im, " Green - dsRed).tif"))
+image3 <- im_adjust(image3, max_px = 0.91)
+
+image4 <- load.image(paste0(imdir, im, " Red - Cy5).tif"))
+image4 <- im_adjust(image4, max_px = 0.92)
+
+empty_image <- matrix(0, nrow = dim(image1)[1], ncol = dim(image1)[2])
+
+image1_rgb <- (imappend(list(as.cimg(empty_image), as.cimg(empty_image), as.cimg(image1)), "c"))
+image2_rgb <- imappend(list(as.cimg(image2), as.cimg(empty_image),  as.cimg(empty_image)), "c")
+image3_rgb <- imappend(list( as.cimg(empty_image),as.cimg(image3), as.cimg(empty_image)), "c")
+image4_rgb <- imappend(list(as.cimg(image4), as.cimg(empty_image), as.cimg(image4)), "c")
+
+#im_all <- renorm(image1_rgb + image3_rgb  + image2_rgb +  image4_rgb, 0, 255)
+im_all <- image1_rgb + image3_rgb  + image2_rgb
+
+
+
+combined_ims <- imappend(list(image1_rgb, white_image, image3_rgb, white_image,
+                              image2_rgb, white_image, image4_rgb, white_image,im_all), "x")
+
+save.image(combined_ims, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/Figures/Images/Cis_UT_channels.jpg")
+
+
+
+x <- comp_im("G - 11(fld 5 wv", impth)
+
+```
+
+Images of dose response
+```{r}
+## WT
+wt_im_0_nm <- "E - 03(fld 5 wv"
+wt_im_0 <- comp_im(wt_im_0_nm, imdir, mx_px3 = 0.88, mx_px2 = 0.92)
+
+wt_im_2000_nm <- "G - 02(fld 5 wv"
+wt_im_2000 <- comp_im(wt_im_2000_nm, imdir, mx_px3 = 0.88, mx_px2 = 0.92)
+
+wt_im_10000_nm <- "E - 01(fld 6 wv"
+wt_im_10000 <- comp_im(wt_im_10000_nm, imdir, mx_px3 = 0.82, mx_px2 = 0.92)
+
+wt_im_40000_nm <- "C - 02(fld 5 wv"
+wt_im_40000 <- comp_im(wt_im_40000_nm, imdir, mx_px3 = 0.82, mx_px2 = 0.92)
+
+wt_dse <- imappend(list(wt_im_0, white_image, wt_im_2000, white_image, wt_im_10000, white_image,wt_im_40000), "x")
+
+save.image(wt_dse, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/Figures/Images/wt_dose_images.jpg")
+
+```
+
+```{r}
+
+## Cis
+cis_im_0_nm <- "A - 08(fld 5 wv"
+cis_im_0 <- comp_im(cis_im_0_nm, imdir, mx_px3 = 0.88, mx_px2 = 0.92)
+
+cis_im_2000_nm <- "G - 07(fld 5 wv"
+cis_im_2000 <- comp_im(cis_im_2000_nm, imdir, mx_px3 = 0.88, mx_px2 = 0.92)
+
+cis_im_10000_nm <- "E - 08(fld 5 wv"
+cis_im_10000 <- comp_im(cis_im_10000_nm, imdir, mx_px3 = 0.88, mx_px2 = 0.92)
+
+cis_im_40000_nm <- "C - 07(fld 5 wv"
+cis_im_40000 <- comp_im(cis_im_40000_nm, imdir, mx_px3 = 0.88, mx_px2 = 0.92)
+
+cis_dse <- imappend(list(cis_im_0, white_image,cis_im_2000, white_image,cis_im_10000, white_image,cis_im_40000), "x")
+
+save.image(cis_dse, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/Figures/Images/cis_dose_images.jpg")
+
+```
+
+```{r}
+im <- "E - 02(fld 5 wv"
+# Get the WT
+image1 <- load.image(paste0(imdir, im, " UV - DAPI).tif"))
+image1 <- im_adjust(image1)
+
+image2 <- load.image(paste0(imdir, im, " Blue - FITC).tif"))
+image2 <- im_adjust(image2, max_px = 0.9)
+
+image3 <- load.image(paste0(imdir, im, " Green - dsRed).tif"))
+image3 <- im_adjust(image3, max_px = 0.85)
+# 
+image4 <- load.image(paste0(imdir, im, " Red - Cy5).tif"))
+image4 <- im_adjust(image4, max_px = 0.85)
+
+empty_image <- matrix(0, nrow = dim(image1)[1], ncol = dim(image1)[2])
+
+image1_rgb <- (imappend(list(as.cimg(empty_image), as.cimg(empty_image), as.cimg(image1)), "c"))
+image2_rgb <- (imappend(list(as.cimg(image2),as.cimg(empty_image), as.cimg(empty_image)), "c"))
+image3_rgb <- imappend(list(as.cimg(empty_image), as.cimg(image3),  as.cimg(empty_image)), "c")
+image4_rgb <- imappend(list(as.cimg(image4), as.cimg(empty_image),   as.cimg(empty_image)), "c")
+
+# plot(image1_rgb)
+# plot(image2_rgb)
+# plot(image3_rgb)
+# plot(image4_rgb)
+
+im_rgb <- image1_rgb + image3_rgb + image2_rgb
+
+plot(im_rgb)
+
+# image3_rgb <- imappend(list( as.cimg(empty_image),as.cimg(image3), as.cimg(empty_image)), "c")
+# image4_rgb <- imappend(list(as.cimg(0.5*image4), as.cimg(empty_image), as.cimg(image4)), "c")
+```
+
+
+```{r}
+plot.igraph(makeMSTFromSOM(wt_cis_cmb_SOM_all_features25, "canberra"), edge.label = NA)
+plot.igraph(makeMSTFromSOM(wt_cis_cmb_SOM_all_features25), edge.label = NA)
+```
+
+```{r}
+
+# (dt, param, regions, channels = "AreaShapeFeature", groupby = c("Plate_nuc", "Well_nuc"), ttl = "")
+# WT_IntegratedIntensityPlots <- plotMorphParamaterDist(WT_UT, 
+#                                                       "Intensity_IntegratedIntensity",
+#                                                       c("nuc", "cell"), 
+#                                                       c("DNA_Corr", "CytoSkelCorr", "Mitochondria_Corr", "ER_Corr"), ttl = "WT Untreated")
+
+plotMorphParamaterDist(WT_CisplatinUntreatedNrm, "Intensity_MedianIntensity",
+                                                      c("nuc"),
+                                                      c("DNA_Corr"),
+                                                      groupby  = c("plate"), ttl = "WT Untreated")
+```
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

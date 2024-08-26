@@ -5,6 +5,8 @@ require(MOFA2)
 library(viridis)
 library(grid)
 library(ggdendro)
+library(RColorBrewer)
+library(viridis)
 
 ## SOM functions
 cell_paint_som <- function(data, datCols, xDim = 6, yDim = 6, seed = NULL){
@@ -852,7 +854,7 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity
          height = 10, width = 8, dpi = 600)
   
   ## Plots for cluster counts -------------------------------------------------------- #
-  
+  #browser()
   # count the number of wells
   wellCntWT <- FiltParmClass %>% group_by(Dose, Metadata_Well_nuc) %>% count()
   wellCntWT <- wellCntWT[, "Dose", drop = F] %>% count()
@@ -863,7 +865,9 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity
   
   No_Cells_DoseClusterWT$Dose <- as.numeric(No_Cells_DoseClusterWT$Dose)
   No_Cells_DoseClusterWT$Dose[No_Cells_DoseClusterWT$Dose == 0] <- 100 
-  No_Cells_DoseClusterWT$Cluster <- factor(No_Cells_DoseClusterWT$Cluster, levels = 1:15)
+  No_Cells_DoseClusterWT$Cluster <- factor(No_Cells_DoseClusterWT$Cluster, levels = 1:cut)
+  
+  colPal <- viridis(cut)
   
   pWT_per <- ggplot(No_Cells_DoseClusterWT, aes(x=(as.numeric(Dose)), y=100*percentage, fill=Cluster)) + 
     geom_area(alpha=0.6 , linewidth=0.8, colour="white") + ylab("Percentage of cells") + geom_col(colour = "white", width = 0.1) +
@@ -873,7 +877,7 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity
     annotate("text", x=28200 - 1700, y=50, label="Cis IC50", angle=90) +
     geom_vline(xintercept = 3430, linetype = "dashed", linewidth = 1.0) +
     annotate("text", x=3430 - 300, y=50, label="WT IC50", angle=90) +
-    scale_x_log10() + theme_bw()
+    scale_x_log10() + theme_bw() + scale_fill_manual(values = colPal, breaks = 1:cut)
   
   pWT_cnts <- ggplot(No_Cells_DoseClusterWT, aes(x=(as.numeric(Dose)), y=nn, fill=Cluster)) + 
     geom_area(alpha=0.6 , linewidth=0.8, colour="white") + ylab("Number of cells per well") + geom_col(colour = "white", width = 0.1) +
@@ -883,7 +887,7 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity
     annotate("text", x=28200 - 1700, y=4000, label="Cis IC50", angle=90) +
     geom_vline(xintercept = 3430, linetype = "dashed", linewidth = 1.0) +
     annotate("text", x=3430 - 300, y=4000, label="WT IC50", angle=90) +
-    scale_x_log10() + theme_bw()
+    scale_x_log10() + theme_bw() + scale_fill_manual(values = colPal, breaks = 1:cut)
   
   ## Cisplatin resistant
   
@@ -897,7 +901,7 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity
   
   No_Cells_DoseClusterCis$Dose <- as.numeric(No_Cells_DoseClusterCis$Dose)
   No_Cells_DoseClusterCis$Dose[No_Cells_DoseClusterCis$Dose == 0] <- 100 
-  No_Cells_DoseClusterCis$Cluster <- factor(No_Cells_DoseClusterCis$Cluster, levels = 1:15)
+  No_Cells_DoseClusterCis$Cluster <- factor(No_Cells_DoseClusterCis$Cluster, levels = 1:cut)
   
   pCis_per <- ggplot(No_Cells_DoseClusterCis, aes(x=(as.numeric(Dose)), y=100*percentage, fill=Cluster)) + 
     geom_area(alpha=0.6 , linewidth=0.8, colour="white") + ylab("Percentage of cells") + geom_col(colour = "white", width = 0.1) +
@@ -907,7 +911,7 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity
     annotate("text", x=28200 - 1700, y=50, label="Cis IC50", angle=90) +
     geom_vline(xintercept = 3430, linetype = "dashed", linewidth = 1.0) +
     annotate("text", x=3430 - 300, y=50, label="Cis IC50", angle=90) +
-    scale_x_log10() + theme_bw()
+    scale_x_log10() + theme_bw() + scale_fill_manual(values = colPal, breaks = 1:cut)
   
   pCis_cnts <- ggplot(No_Cells_DoseClusterCis, aes(x=(as.numeric(Dose)), y=nn, fill=Cluster)) + 
     geom_area(alpha=0.6 , linewidth=0.8, colour="white") + ylab("Number of cells per well") + geom_col(colour = "white", width = 0.1) +
@@ -917,7 +921,7 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity
     annotate("text", x=28200 - 1700, y=4000, label="WT IC50", angle=90) +
     geom_vline(xintercept = 3430, linetype = "dashed", linewidth = 1.0) +
     annotate("text", x=3430 - 300, y=4000, label="Cis IC50", angle=90) +
-    scale_x_log10() + theme_bw()
+    scale_x_log10() + theme_bw() + scale_fill_manual(values = colPal, breaks = 1:cut)
   
   # ggsave(pWT_per, filename = paste0(savDr, "/","StackedPlot_WT_per_" ,  savFn))
   # ggsave(pWT_cnts, filename = paste0(savDr, "/","StackedPlot_WT_cnts_" ,  savFn))
@@ -925,5 +929,45 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity
   # ggsave(pCis_cnts, filename = paste0(savDr, "/","StackedPlot_Cis_cnts_" ,  savFn))
   
   ggsave(pWT_per + pWT_cnts + pCis_per + pCis_cnts, filename = paste0(savDr, "/","StackedPlot_" ,  savFn), height = 10, width = 12)
+  
+}
+
+## Function to isolate a cell in an image
+isolate_cell <- function(I, x = 50, y = 50){
+  browser()
+  # Split the image into its three channels (Red, Green, Blue)
+  r <- R(image)
+  g <- G(image)
+  b <- B(image)
+  
+  # Create a logical mask where all channels are greater than 200
+  mask <- (r > 0.6) & (g > 0.6) & (b > 0.6)
+  
+  # Create a new image with all pixels set to black initially
+  output_image <- image
+  output_image[] <- 0
+  
+  # Set pixels where the mask is TRUE to white
+  output_image[,,1][mask] <- 1  # Red channel
+  output_image[,,2][mask] <- 1  # Green channel
+  output_image[,,3][mask] <- 1  
+  
+  x <- floodFill(output_image, c(x,y),'white')
+  x <- erode(x, kern = makeBrush(3,"disc"))
+  x <- dilate(x,kern = makeBrush(3,"disc"))
+  
+  labeled_image <- imager::label(x)
+  
+  # Find the largest component
+  cmp_table <- table(labeled_image)
+  components <- data.frame('label' = as.numeric(row.names(cmp_table)), 'freq' = as.data.frame(cmp_table)$Freq)
+  #components$labeled_image <- numeric(components$labeled_image)
+  components <- (components[components$label > 0,])
+  largest_component <- components$label[which(components$freq == components$freq[which.max(components$freq)] )]
+  
+  # Create a mask for the largest component
+  largest_component_mask <- labeled_image == largest_component
+  
+  out_im <- imappend(list(r*largest_component_mask, g*largest_component_mask, b*largest_component_mask), "c")
   
 }

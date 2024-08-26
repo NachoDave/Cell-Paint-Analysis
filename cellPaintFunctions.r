@@ -237,14 +237,14 @@ plotMorphParamaterDist <- function(dt, param, regions, channels = "AreaShapeFeat
   for (cdx in channels){
     for (rdx in regions){
       #browser()
-      if (cdx == "AreaShapeFeature"){
+      if (cdx == "AreaShapeFeature" | cdx == "Neighours"){
         tP <- paste(param, rdx, sep = "_")
       } else{
       tP <- paste(param, cdx, rdx, sep = "_")
       }
       
       #GroupCols <- dt[, paste("Metadata", groupby, sep = "_")]
-      GroupCols <- dt[, groupby]
+      GroupCols <- dt[, groupby, drop = FALSE]
       Group <- sapply(1:nrow(GroupCols), function(x) paste(GroupCols[x, ], collapse =   " "))
       
       tDat <- data.frame(Param = dt[, tP], x = GroupCols[,1], Location = Group) 
