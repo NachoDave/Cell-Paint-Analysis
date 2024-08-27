@@ -553,8 +553,12 @@ plot_data_scatter_dj <- function(MOFA, group = "cell_line", view = "DNA", factor
 
 ## Image, dendrogram heatmap image function
 
-imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity, subDr_prefix, savDr, savFn,  cut = 16, imN = 5, feature_type = "features", clstMthd = "canberra", isolateCell = FALSE){
+imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity, subDr_prefix, savDr, savFn,  cut = 16, imN = 5, feature_type = "features", clstMthd = "canberra", isolateCell = FALSE, set_seed = FALSE){
   #browser()
+  
+  if (set_seed){
+    set.seed(set_seed)
+  }
   
   # Combine the integrated Intensity data with the cell data
   cell_dat <- dplyr::inner_join(cell_dat, integratedIntensity[, c("FilenameDNA", "ObjectNumber_nuc", "Intensity_IntegratedIntensity_DNA_Corr_nuc")], by = c("FilenameDNA" = "FilenameDNA", "ObjectNumber_nuc" = "ObjectNumber_nuc"))

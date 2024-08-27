@@ -591,7 +591,7 @@ imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/
               metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
               "All_features_25_",
               "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM plots 260824/",
-              "all_features_25_clst25_NoIsolate_cell_10im.png",  cut = 25, imN = 10, feature_type = "allFeatures", isolateCell = FALSE)
+              "all_features_25_clst25_Isolate_cell_10im.png",  cut = 25, imN = 10, feature_type = "allFeatures", isolateCell = TRUE, set_seed = 28)
 # # 
 # imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//all_features/25_node/",
 #               wt_cis_cmb_SOM_all_features25,
