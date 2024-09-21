@@ -974,3 +974,44 @@ plotMorphParamaterDist(WT_CisplatinUntreatedNrm, "Intensity_MedianIntensity",
 
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Figure 5 - 
+```{r}
+
+# imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2//all_features/25_node/",
+#               wt_cis_cmb_SOM_all_features25,
+#               WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ],
+#               metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
+#               "All_features_25_",
+#               "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/SOM plots 260824/",
+#               "all_features_25_clst25_Isolate_cell_10im.png",  cut = 25, imN = 10, feature_type = "allFeatures", isolateCell = TRUE, set_seed = 28)
+
+## What arguements - 263887 cells, 512 -features 13 - meta features , SOM = wt_cis_cmb_SOM_all_features25
+# 1) Location of the images - may need to make a new folder with images
+# 2) SOM Codes - Need to combine these for the clustering! These are the representative feature vectors
+    # SOM Data - this is the raw data, maybe don't need to change this (probably need to combine )
+#unit.classif - change cluster classes
+# 3) cell_dat - this is the original data, so don't need to modify, maybe take out cells which aren't in the clusters
+# 4) metColsCmb - fine
+# 5_ Integrated Intensity - same as cell_dat
+
+
+#wt_cis_cmb_SOM_all_features25_final_clsts <- wt_cis_cmb_SOM_all_features25
+
+SOM <- wt_cis_cmb_SOM_all_features25 # 
+nrm_dat <- WT_Cis_CisplatinDoxUntreatedNrm[!(WT_Cis_CisplatinDoxUntreatedNrm$Treatment == "Doxorubicin"), ]
+
+# Lewis clusters of interest
+clst1 <- c(3, 4, 5, 8)
+clst2 <- c(1, 2, 9, 10)
+clst3 <- c(6, 7, 13, 17)
+clst4 <- c(14, 15, 19, 20, 24)
+clst5 <- c(18, 25)
+
+clst_interest <- c(clst1, clst2, clst3, clst4, clst5)
+in_clsts_idx <- SOM$unit.classif %in% clst_interest
+
+
+
+
+```
+
