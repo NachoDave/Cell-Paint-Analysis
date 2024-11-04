@@ -1010,6 +1010,89 @@ clst5 <- c(18, 25)
 clst_interest <- c(clst1, clst2, clst3, clst4, clst5)
 in_clsts_idx <- SOM$unit.classif %in% clst_interest
 
+nrm_dat_clst <- nrm_dat[in_clsts_idx, ]
+
+## Work on the SOM --
+# Data
+SOM_clst <- SOM
+SOM_clst$data[[1]] <- SOM_clst$data[[1]][in_clsts_idx, ]
+
+# Unit.if
+t_unit.classif <- vector(mode= "integer", length = length(SOM_clst$unit.classif))
+t_unit.classif[SOM_clst$unit.classif %in% clst1] <- 1
+t_unit.classif[SOM_clst$unit.classif %in% clst2] <- 2
+t_unit.classif[SOM_clst$unit.classif %in% clst3] <- 3
+t_unit.classif[SOM_clst$unit.classif %in% clst4] <- 4
+t_unit.classif[SOM_clst$unit.classif %in% clst5] <- 5
+
+t_unit.classif <- t_unit.classif[in_clsts_idx]
+SOM_clst$unit.classif <- t_unit.classif
+
+# Codes
+t_SOM_code_1 <- colMeans(SOM$codes[[1]][clst1, ])
+t_SOM_code_2 <- colMeans(SOM$codes[[1]][clst2, ])
+t_SOM_code_3 <- colMeans(SOM$codes[[1]][clst3, ])
+t_SOM_code_4 <- colMeans(SOM$codes[[1]][clst4, ])
+t_SOM_code_5 <- colMeans(SOM$codes[[1]][clst5, ])
+
+t_SOM_code <- rbind(t_SOM_code_1, t_SOM_code_2, t_SOM_code_3, t_SOM_code_4, t_SOM_code_5)
+rownames(t_SOM_code) <- c("V1", "V2", "V3", "V4", "V5")
+
+SOM_clst$codes[[1]] <- t_SOM_code
+
+## Run plots
+p2 <- imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/all_features/5_clusters/",
+              SOM_clst,
+              nrm_dat_clst,
+              metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
+              "cluster_",
+              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/Figures/Figure 5 panels//",
+              "all_features_clster5_Isolate_cell_5im.png",  cut = 5, imN = 10, feature_type = "allFeatures", isolateCell = TRUE, set_seed = 47)
+
+## Copy images across
+# Define source and destination directories
+# source_dir <- "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/all_features/25_node/"
+# 
+# destination_dir <- "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/all_features/5_clusters/cluster_"
+
+## Copy files cluster 1
+# for (dx in clst1){
+#   files_to_copy <- list.files(paste0(source_dir, "All_features_25_", dx), full.names = TRUE)
+#   file.copy(files_to_copy, paste0(destination_dir, "1/"))
+#   print(files_to_copy)
+# }
+# 
+# ## Copy files cluster 2
+# for (dx in clst2){
+#   files_to_copy <- list.files(paste0(source_dir, "All_features_25_", dx), full.names = TRUE)
+#   file.copy(files_to_copy, paste0(destination_dir, "2/"))
+#   print(files_to_copy)
+# }
+# 
+# ## Copy files cluster 3
+# for (dx in clst3){
+#   files_to_copy <- list.files(paste0(source_dir, "All_features_25_", dx), full.names = TRUE)
+#   file.copy(files_to_copy, paste0(destination_dir, "3/"))
+#   print(files_to_copy)
+# }
+# 
+# ## Copy files cluster 4
+# for (dx in clst4){
+#   files_to_copy <- list.files(paste0(source_dir, "All_features_25_", dx), full.names = TRUE)
+#   file.copy(files_to_copy, paste0(destination_dir, "4/"))
+#   print(files_to_copy)
+# }
+# 
+# ## Copy files cluster 5
+# for (dx in clst5){
+#   files_to_copy <- list.files(paste0(source_dir, "All_features_25_", dx), full.names = TRUE)
+#   file.copy(files_to_copy, paste0(destination_dir, "5/"))
+#   print(files_to_copy)
+# }
+
+
+## Rerun the figures
+
 
 
 

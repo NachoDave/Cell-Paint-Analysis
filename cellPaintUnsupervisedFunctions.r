@@ -678,11 +678,17 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity
     
     # 4 Format image in 
     
-    p2 <- p2 + annotation_custom(rasterGrob(im, width = 1, height = 1),
-                                 xmin = 0, xmax = imN*0.96,
-                                 ymin = idx - 0.78, ymax = idx + 0.18) 
-    
+    # p2 <- p2 + annotation_custom(rasterGrob(im, width = 1, height = 1),
+    #                              xmin = 0, xmax = imN*0.96,
+    #                              ymin = idx - 0.78, ymax = idx + 0.18)
+  
+    # p2 <- p2 + annotation_custom(rasterGrob(im, width = 1, height = 1),
+    #                              xmin = 0, xmax = imN*0.78,
+    #                              ymin = idx - 0.78, ymax = idx + 0)
+  
   }
+  
+  
   #browser()
   
   # 5 make the heatmap
@@ -948,10 +954,12 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity
   
   ggsave(pWT_per + pWT_cnts + pCis_per + pCis_cnts, filename = paste0(savDr, "/","StackedPlot_" ,  savFn), height = 10, width = 12)
   
+  return(p2)
+  
 }
 
 ## Function to isolate a cell in an image
-isolate_cell <- function(image, x = 50, y = 50){
+isolate_cell <- function(image, x = 50, y = 50, msk_ret = 0){
   ##browser()
   # Split the image into its three channels (Red, Green, Blue)
   r <- R(image)
@@ -985,6 +993,10 @@ isolate_cell <- function(image, x = 50, y = 50){
   
   # Create a mask for the largest component
   largest_component_mask <- labeled_image == largest_component
+  
+  if (msk_ret){
+    return(largest_component_mask)
+  }
   
   out_im <- imappend(list(r*largest_component_mask, g*largest_component_mask, b*largest_component_mask), "c")
   
