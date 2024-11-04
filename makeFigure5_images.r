@@ -6,6 +6,15 @@
 # We should know the which sub folder they are in as we know the SOM node from the diagram
 
 source("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/RScripts_011122/cellPaintUnsupervisedFunctions.r")
+# Load the packages
+library(tiff)
+library(magick)
+library(ggplot2)
+library(gridExtra)
+library(imager)
+source("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/RScripts_011122/cellPaintFunctions.r")
+source("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/RScripts_011122/cellPaintUnsupervisedFunctions.r")
+library("EBImage")
 
 im_adjust <- function(im, min_px = 0.01, max_px = 0.99){
   
@@ -30,8 +39,11 @@ wells = c('E - 07', 'F - 11', 'H - 02', 'F - 02', 'F - 12', 'E - 01')
 flds = c('15', '09', '18', '12', '21', '24')
 obs = c(24, 104, 244, 160, 188, 15)
 clst = c(5, 3, 8, 8, 3, 3)
+cyto_fac_ar <- c(0.995, 0.99, 0.98, 0.99 ,0.88, 1)
+dna_fac_ar <- c(0.99, 0.98, 1, 0.98 ,0.9, 1)
+#fac
 
-for (dx in 1:6){
+for (dx in 1:6){#:6){
 
   
   ## Construct the images strings
@@ -78,19 +90,25 @@ for (dx in 1:6){
                          y < yMax
   )
   ## Adjust contrast
-  if (tDt$cell_line == 'WT'){
-    dna_fac = 0.9
-    mito_fac = 0.85
-    cyto_fac = 0.85
-  } else {
-    dna_fac = 0.98
-    mito_fac = 0.91
-    cyto_fac = 0.93
-  }
+  # if (tDt$cell_line == 'WT'){
+  #   dna_fac = 0.9
+  #   mito_fac = 0.85
+  #   cyto_fac = 0.85
+  # } else {
+  #   dna_fac = 0.98
+  #   mito_fac = 0.91
+  #   cyto_fac = 0.93
+  # }
+  #dna_fac <- dna_fac_ar[dx]
+  cyto_fac <- cyto_fac_ar[dx]
+  dna_fac <- dna_fac_ar[dx]
+  mito_fac <- 1
   
   I_DNA_Patch = im_adjust(I_DNA_Patch, max_px = dna_fac)
-  I_cyto_Patch = im_adjust(I_cyto_Patch, max_px = dna_fac)
-  I_mito_Patch = im_adjust(I_mito_Patch, max_px = dna_fac)
+  I_cyto_Patch = im_adjust(I_cyto_Patch, max_px = cyto_fac)
+  I_mito_Patch = im_adjust(I_mito_Patch, max_px = mito_fac)
+  
+  print(mean(I_cyto_Patch[I_cyto_Patch > 0]))
   
   ## Load the segmented image and get the patch
   I_seg_pth <- paste0(tDt$Segmentationpath, gsub('.tif', paste0('_', tDt$cell_line, '.jpeg'), tDt$FilenameDNA))
@@ -111,8 +129,10 @@ for (dx in 1:6){
   I2 <- (imappend(list(as.cimg(empty_image), as.cimg(I_cyto_Patch*I_msk), as.cimg(empty_image)), "c"))
   I3 <- (imappend(list(as.cimg(I_mito_Patch*I_msk), as.cimg(empty_image), as.cimg(empty_image)), "c"))
   
-  I <- I1 + I2 + I3  
-  
-  plot(I)
+  #I <- I1 + I2# + I3  
+  #I <- I1 + I2 + I3
+  I <- I1 + I2 + I3
+  plot(I/255.01, rescale = FALSE)
+  #hist(I2[I2 > 0])
   
 }
