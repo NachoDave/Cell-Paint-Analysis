@@ -218,6 +218,7 @@ pltCellsInClusters <- function(dat, SOMVals, somCls, metCols, savDr, k = 15){
   cellsByGroup <- WT_Cis_FiltParmMapSOM36_Class[,c("Dose", "Treatment", "plate", "Metadata_Well_nuc", "cell_line") ] %>% count(Dose, Treatment, plate, Metadata_Well_nuc, cell_line, name = "total_cells")# %>% group_by(Dose, cell_line, Treatment) %>% summarise(n = sum(n))   
   
   ## Plot some stuff  
+  plt_all <- list()
   
   for (px in sort(unique(WT_Cis_FiltParmMapSOM36_Class$Cluster))){
     
@@ -238,11 +239,11 @@ pltCellsInClusters <- function(dat, SOMVals, somCls, metCols, savDr, k = 15){
     tDsPltCnts$Dose <- factor( tDsPltCnts$Dose, levels = sort(unique(as.numeric(tDsPltCnts$Dose))))  
     
     ## Get percentage of total population for each cell type cisplatin
-    doxPerPlt <- ggplot(tDsPltCnts[grepl("Doxo|untreated", tDsPltCnts$Treatment), ], aes(x = (Dose), y = mnPer, fill = cell_line)) + 
-      geom_bar(stat = "identity", position= position_dodge(), color = "black") + geom_errorbar(aes(ymin=mnPer-sdPer, ymax=mnPer+sdPer), width=.2,position=position_dodge(.9)) +
-      xlab("Dose (nm)") + ylab("Percent of total cells") + theme_bw() + ggtitle("Percentage of cells Doxo treat") +
-      scale_fill_discrete(name = "Cell line")  + 
-      geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2) # +
+    # doxPerPlt <- ggplot(tDsPltCnts[grepl("Doxo|untreated", tDsPltCnts$Treatment), ], aes(x = (Dose), y = mnPer, fill = cell_line)) + 
+    #   geom_bar(stat = "identity", position= position_dodge(), color = "black") + geom_errorbar(aes(ymin=mnPer-sdPer, ymax=mnPer+sdPer), width=.2,position=position_dodge(.9)) +
+    #   xlab("Dose (nm)") + ylab("Percent of total cells") + theme_bw() + ggtitle("Percentage of cells Doxo treat") +
+    #   scale_fill_discrete(name = "Cell line")  + 
+    #   geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2) # +
     # annotate("text", x=myLocIC50WT - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="WT Dox IC50", angle=90) + 
     # annotate("text", x=myLocIC50Cis - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="Cis Dox IC50", angle=90)
     
@@ -275,27 +276,29 @@ pltCellsInClusters <- function(dat, SOMVals, somCls, metCols, savDr, k = 15){
     # annotate("text", x=myLocIC50Cis - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="Cis Cis IC50", angle=90)     
     
     ### Doxorubicin
-    cntsWTDox <- ggplot(tDsPltCnts[grepl("Dox|untreated", tDsPltCnts$Treatment) & grepl("WT", tDsPltCnts$cell_line), ], aes(x = Dose, y = mnN)) + 
-      geom_bar(stat = "identity", position= position_dodge(), color = "black", fill = "#00bfc4") + geom_errorbar(aes(ymin=mnN-sdN, ymax=mnN+sdN), width=.2,position=position_dodge(.9)) +
-      xlab("Dose (nm)") + ylab("Number of cells") + theme_bw() + ggtitle("No cells Doxo treat WT") + 
-      scale_fill_discrete(name = "Cell line")  + 
-      geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2) +
-      annotate("text", x=myLocIC50WT - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="WT Cis IC50", angle=90) + 
-      annotate("text", x=myLocIC50Cis - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="Cis Cis IC50", angle=90)       
-    
-    cntsCisDox <- ggplot(tDsPltCnts[grepl("Dox|untreated", tDsPltCnts$Treatment) & grepl("Cis", tDsPltCnts$cell_line), ], aes(x = Dose, y = mnN)) + 
-      geom_bar(stat = "identity", position= position_dodge(), color = "black", fill = "#f8766d") + geom_errorbar(aes(ymin=mnN-sdN, ymax=mnN+sdN), width=.2,position=position_dodge(.9)) +
-      xlab("Dose (nm)") + ylab("Number of cells") + theme_bw() + ggtitle("No of cells Dox treat Cis") +
-      scale_fill_discrete(name = "Cell line")  + 
-      geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2) #+
+    # cntsWTDox <- ggplot(tDsPltCnts[grepl("Dox|untreated", tDsPltCnts$Treatment) & grepl("WT", tDsPltCnts$cell_line), ], aes(x = Dose, y = mnN)) + 
+    #   geom_bar(stat = "identity", position= position_dodge(), color = "black", fill = "#00bfc4") + geom_errorbar(aes(ymin=mnN-sdN, ymax=mnN+sdN), width=.2,position=position_dodge(.9)) +
+    #   xlab("Dose (nm)") + ylab("Number of cells") + theme_bw() + ggtitle("No cells Doxo treat WT") + 
+    #   scale_fill_discrete(name = "Cell line")  + 
+    #   geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2) +
+    #   annotate("text", x=myLocIC50WT - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="WT Cis IC50", angle=90) + 
+    #   annotate("text", x=myLocIC50Cis - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="Cis Cis IC50", angle=90)       
+    # 
+    # cntsCisDox <- ggplot(tDsPltCnts[grepl("Dox|untreated", tDsPltCnts$Treatment) & grepl("Cis", tDsPltCnts$cell_line), ], aes(x = Dose, y = mnN)) + 
+    #   geom_bar(stat = "identity", position= position_dodge(), color = "black", fill = "#f8766d") + geom_errorbar(aes(ymin=mnN-sdN, ymax=mnN+sdN), width=.2,position=position_dodge(.9)) +
+    #   xlab("Dose (nm)") + ylab("Number of cells") + theme_bw() + ggtitle("No of cells Dox treat Cis") +
+    #   scale_fill_discrete(name = "Cell line")  + 
+    #   geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2) #+
     # annotate("text", x=myLocIC50WT - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="WT Cis IC50", angle=90) + 
     # annotate("text", x=myLocIC50Cis - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="Cis Cis IC50", angle=90)      
     
     #plt <- cisPerPlt + doxPerPlt + cntsWTCis + cntsWTDox + cntsCisCis + cntsCisDox + plot_layout(ncol = 2, guides = "collect")
-    plt <- cisPerPlt +  cntsWTCis + cntsCisCis + plot_layout(ncol = 1, guides = "collect")
-    ggsave(paste0(savDr, "Cluster_", px, ".png"), plt, width = 5, height = 12)
+    plt <- cisPerPlt +  cntsWTCis + cntsCisCis + plot_layout(ncol = 3, guides = "collect")
+    #ggsave(paste0(savDr, "Cluster_", px, ".png"), plt, width = 5, height = 12)
+    plt_all[[px]] <- plt
     
   }  
+  return(plt_all)
 }
 
 ## make composite plots from clusters
@@ -776,7 +779,7 @@ imageDendroHM <- function(imDir, SOM_map, cell_dat, metCols, integratedIntensity
   cellsByGroup <- FiltParmClass[,c("Dose", "Treatment", "plate", "Metadata_Well_nuc", "cell_line") ] %>% count(Dose, Treatment, plate, Metadata_Well_nuc, cell_line, name = "total_cells")# %>% group_by(Dose, cell_line, Treatment) %>% summarise(n = sum(n))   
   
   for (px in sort(unique(FiltParmClass$Cluster))){
-    #browser()
+    browser()
     tDf <- FiltParmClass[FiltParmClass$Cluster == px,]
     
     ## Count cells
@@ -1006,14 +1009,18 @@ isolate_cell <- function(image, x = 50, y = 50, msk_ret = 0){
 
 
 ## Make the image arrays for figure 6
-make_image_array <- function(plates, wells, flds, clst, cyto_fac_ar, dna_fac_ar){
+make_image_array <- function(plates, wells, flds, clst, cyto_fac_ar, dna_fac_ar, mito_fac_ar, n = NULL, stack = "x"){
   
-  white_image_array <- array(255, dim = c(20, 200, 1, 3))
+  white_image_array <- array(255, dim = c(10, 200, 1, 3))
   white_image <- as.cimg(white_image_array)
   
+  if (is_null(n)){
+    n = length(plates)
+    
+  }
   clst1_list <- list()
   
-  for (dx in 1:length(plates)){#:6){
+  for (dx in 1:n){#:6){
     
     
     ## Construct the images strings
@@ -1072,7 +1079,7 @@ make_image_array <- function(plates, wells, flds, clst, cyto_fac_ar, dna_fac_ar)
     #dna_fac <- dna_fac_ar[dx]
     cyto_fac <- cyto_fac_ar[dx]
     dna_fac <- dna_fac_ar[dx]
-    mito_fac <- 1
+    mito_fac <- mito_fac_ar[dx]
     
     I_DNA_Patch = im_adjust(I_DNA_Patch, max_px = dna_fac)
     I_cyto_Patch = im_adjust(I_cyto_Patch, max_px = cyto_fac)
@@ -1129,7 +1136,7 @@ make_image_array <- function(plates, wells, flds, clst, cyto_fac_ar, dna_fac_ar)
     #clst1_list <- append(clst1_list, white_image)
   }
   
-  II <- imappend(clst1_list, "x")
+  II <- imappend(clst1_list, stack)
   
   return(II)
 }

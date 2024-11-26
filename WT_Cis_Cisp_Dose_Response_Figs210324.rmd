@@ -1040,14 +1040,157 @@ rownames(t_SOM_code) <- c("V1", "V2", "V3", "V4", "V5")
 
 SOM_clst$codes[[1]] <- t_SOM_code
 
-## Run plots
-p2 <- imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/all_features/5_clusters/",
-              SOM_clst,
+  brkN <- 11
+  colors <- colorRampPalette(c("blue", "white","red"))(brkN)
+  breaks <- seq(-5, 5, length.out = brkN)
+  
+  All_feature_Grps <- get_feature_groups(colnames(t_SOM_code), c( "Granularity", "Intensity", "RadialDistribution", "Texture"),
+                                         c("DNA", "CytoSkel", "Mitochondria", "ER"), c("nuc", "cell", "cyto"))
+
+  All_feature_Grps <- All_feature_Grps[order(All_feature_Grps$group),]
+  All_feature_Grps_ColN <- cumsum(table(All_feature_Grps$group))
+
+  # SOM_Code_HM_plot <- SOM_codes[rev(clst$order) ,All_feature_Grps$feature]
+  # colnames(SOM_Code_HM_plot) <- paste0("cl", 1:ncol(SOM_Code_HM_plot))
+  # rownames(All_feature_Grps) <- colnames(SOM_Code_HM_plot)
+
+pheatmap(as.matrix(t_SOM_code), cluster_rows = FALSE, show_colnames = FALSE, breaks = breaks, color = colors)
+
+```
+
+```{r}
+
+## cell counts
+
+# WT_Cis_Cells_CmbNorm, wt_cis_cmb_SOM_top_pcs25$codes[[1]], wt_cis_cmb_SOM_top_pcs25$unit.classif, metColsCmb, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/top_PCs/25_node/", k = 16
+
+xx <- pltCellsInClusters(nrm_dat_clst, SOM_clst$codes[[1]],
+              SOM_clst$unit.classif,
+              metColsCmb, "x", k = 5)
+
+```
+
+```{r}
+
+## Cell cycle
+
+cell_cycle <- function(SOM_map, cell_dat, metCols, integratedIntensity, n = 5){
+  
+  # Combine the integrated Intensity data with the cell data
+  cell_dat <- dplyr::inner_join(cell_dat, integratedIntensity[, c("FilenameDNA", "ObjectNumber_nuc", "Intensity_IntegratedIntensity_DNA_Corr_nuc")], by = c("FilenameDNA" = "FilenameDNA", "ObjectNumber_nuc" = "ObjectNumber_nuc"))
+  
+  SOM_codes <- SOM_map$codes[[1]]
+  
+  cell_cyc <- list()
+  
+    cnt <- 1
+    for (px in 1:n){
+    #browser()
+    tDf <- cell_dat[SOM_map$unit.classif == px,]
+
+    pWT <- ggplot(tDf[tDf$cell_line == 'WT',], aes(x = Intensity_IntegratedIntensity_DNA_Corr_nuc)) + 
+      geom_histogram(bins = 300, fill = "#00bfc4") + xlim(0, 50) + xlab("Integrated Intensity") + ylab("Cell count")
+    
+    pCis <- ggplot(tDf[tDf$cell_line == 'Cis',], aes(x = Intensity_IntegratedIntensity_DNA_Corr_nuc)) + 
+      geom_histogram(bins = 300, fill = "#f8766d") + xlim(0, 50) + xlab("Integrated Intensity") + ylab("Cell count")
+    
+    p <- ggplot(tDf, aes(x = Intensity_IntegratedIntensity_DNA_Corr_nuc)) + 
+      geom_histogram(bins = 300, fill = "#f8766d") + xlim(0, 50) + xlab("Integrated Intensity") + ylab("Cell count")
+    
+    pCC <- pWT + pCis + p
+    
+    cell_cyc[[cnt]] <- pCC
+    cnt <- cnt + 1
+    
+  }
+  return(cell_cyc)
+  
+}
+
+cc <- cell_cycle(SOM_clst,
               nrm_dat_clst,
-              metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
-              "cluster_",
-              "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/Figures/Figure 5 panels//",
-              "all_features_clster5_Isolate_cell_5im.png",  cut = 5, imN = 10, feature_type = "allFeatures", isolateCell = TRUE, set_seed = 47)
+              metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity)
+
+```
+
+```{r, fig.height=12, fig.width=8}
+
+SOM_map <- wt_cis_cmb_SOM_all_features25
+SOM_codes <- SOM_map$codes[[1]]
+  brkN <- 11
+  colors <- colorRampPalette(c("blue", "white", "red"))(brkN)
+  breaks <- seq(-5, 5, length.out = brkN)
+  
+  clst <- hclust(dist(SOM_codes, "canberra"))
+clstCut <- cutree(clst, k = 25)
+
+nodeN <- length(clst$order)
+
+row_phm_cut <- cumsum(sapply(unique(clstCut[rev(clst$order)] ), function(x){sum(clstCut[rev(clst$order)] == x)}))
+  ### All features
+
+
+  All_feature_Grps <- get_feature_groups(colnames(SOM_map$data[[1]]), c( "Granularity", "Intensity", "RadialDistribution", "Texture"),
+                                         c("DNA", "CytoSkel", "Mitochondria", "ER"), c("nuc", "cell", "cyto"))
+
+  All_feature_Grps <- All_feature_Grps[order(All_feature_Grps$group),]
+  All_feature_Grps_ColN <- cumsum(table(All_feature_Grps$group))
+  
+  
+#   clst1 <- c(3, 4, 5, 8)
+# clst2 <- c(1, 2, 9, 10)
+# clst3 <- c(6, 7, 13, 17)
+# clst4 <- c(14, 15, 19, 20, 24)
+# clst5 <- c(18, 25)
+  
+  clst_grps <- data.frame(Cluster = c("Cluster 2", "Cluster 2", "Cluster 1", "Cluster 1", "Cluster 1",
+                                      "Cluster 3", "Cluster 3", "Cluster 1", "Cluster 2", "Cluster 2",
+                                      "X", "X", "Cluster 3", "Cluster 4", "Cluster 4",
+                                      "X", "Cluster 3", "Cluster 5", "Cluster 4", "Cluster 4",
+                                      "X", "X", "X", "Cluster 4", "Cluster 5"))
+  
+  rownames(clst_grps) <- paste0("V", seq(1, 25, 1))
+  
+  #colnames(All_feature_Grps) <- c("Group", "Feature")
+
+  SOM_Code_HM_plot <- SOM_codes[rev(clst$order) ,All_feature_Grps$feature]
+  colnames(SOM_Code_HM_plot) <- paste0("cl", 1:ncol(SOM_Code_HM_plot))
+  rownames(All_feature_Grps) <- colnames(SOM_Code_HM_plot)
+
+  phm <- pheatmap(t(SOM_Code_HM_plot), show_colnames =  FALSE, show_rownames = FALSE, breaks = breaks, color = colors, 
+                  cluster_cols = TRUE,
+                   clustering_distance_cols = "canberra",  cutree_cols = clstCut, cluster_rows = FALSE, annotation_row = All_feature_Grps[, 1, drop = FALSE],
+                  # gaps_row = All_feature_Grps_ColN, 
+                  #gaps_col = c(4, 8, 12), 
+                  annotation_col = clst_grps,
+                  border_color = 'black'
+  )
+  
+  save_pheatmap_pdf(phm, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/Figures/Figure 6 panels/hm_dendro.pdf",
+                    width = 8, height = 10)
+
+  #All_feature_Grps_ColN
+  #row_phm_cut
+```
+
+
+```{r}
+
+All_feature_Grps[, 1, drop = FALSE]
+All_feature_Grps
+```
+
+
+```{r}
+
+## Run plots
+# p2 <- imageDendroHM("/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/R_Results/SOM_Results_011223_CisOnly_2/all_features/5_clusters/",
+#               SOM_clst,
+#               nrm_dat_clst,
+#               metColsCmb, WT_Cis_CisplatinDoxUntreatedIntegratedIntensity,
+#               "cluster_",
+#               "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/Figures/Figure 5 panels//",
+#               "all_features_clster5_Isolate_cell_5im.png",  cut = 5, imN = 10, feature_type = "allFeatures", isolateCell = TRUE, set_seed = 47)
 
 ## Copy images across
 # Define source and destination directories
