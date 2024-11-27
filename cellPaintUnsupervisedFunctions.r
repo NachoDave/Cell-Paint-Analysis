@@ -247,33 +247,39 @@ pltCellsInClusters <- function(dat, SOMVals, somCls, metCols, savDr, k = 15){
     # annotate("text", x=myLocIC50WT - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="WT Dox IC50", angle=90) + 
     # annotate("text", x=myLocIC50Cis - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="Cis Dox IC50", angle=90)
     
+    ccols <- c("Cis" = "#9C179EFF", "WT" = "#0D0887FF")
+    tDsPltCnts$cell_line <- factor(tDsPltCnts$cell_line, levels = c("WT", "Cis"))
     
     cisPerPlt <- ggplot(tDsPltCnts[grepl("Cis|untreated", tDsPltCnts$Treatment), ], aes(x = Dose, y = mnPer, fill = cell_line)) + 
       geom_bar(stat = "identity", position= position_dodge(), color = "black") + geom_errorbar(aes(ymin=mnPer-sdPer, ymax=mnPer+sdPer), width=.2,position=position_dodge(.9)) +
-      xlab("Dose (nm)") + ylab("Percent of total cells") + theme_bw() + ggtitle("Percentage of cells Cis treat") +
-      scale_fill_discrete(name = "Cell line")  + 
+      xlab("Dose (nm)") + ylab("Percent of total cells") + theme_bw() + ggtitle("% of population") +
+      scale_fill_discrete(name = "Cell line")  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
       geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2) +
-      annotate("text", x=myLocIC50WT - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="WT Cis IC50", angle=90) + 
-      annotate("text", x=myLocIC50Cis - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="Cis Cis IC50", angle=90) 
+      annotate("text", x=myLocIC50WT - 0.45, y=2*max(tDsPltCnts$mnPer)/3, label="WT IC50", angle=90) + 
+      annotate("text", x=myLocIC50Cis - 0.45, y=2*max(tDsPltCnts$mnPer)/3, label="Cis IC50", angle=90) + 
+      scale_fill_manual(values = ccols, limits = rev(names(ccols)), name = "Cell Line")
     
     
     ## Get cell counts for each group 
     ### Cisplatin
+    cis_cells <- tDsPltCnts[grepl("Cis|untreated", tDsPltCnts$Treatment) & grepl("Cis", tDsPltCnts$cell_line), ]
+    wt_cells <- tDsPltCnts[grepl("Cis|untreated", tDsPltCnts$Treatment) & grepl("WT", tDsPltCnts$cell_line), ]
+    
     cntsWTCis <- ggplot(tDsPltCnts[grepl("Cis|untreated", tDsPltCnts$Treatment) & grepl("WT", tDsPltCnts$cell_line), ], aes(x = Dose, y = mnN)) + 
-      geom_bar(stat = "identity", position= position_dodge(), color = "black", fill = "#00bfc4") + geom_errorbar(aes(ymin=mnN-sdN, ymax=mnN+sdN), width=.2,position=position_dodge(.9)) +
-      xlab("Dose (nm)") + ylab("Number of cells") + theme_bw() + ggtitle("No of cells Cis treat WT") + 
-      scale_fill_discrete(name = "Cell line")  + 
+      geom_bar(stat = "identity", position= position_dodge(), color = "black", fill = "#0D0887FF") + geom_errorbar(aes(ymin=mnN-sdN, ymax=mnN+sdN), width=.2,position=position_dodge(.9)) +
+      xlab("Dose (nm)") + ylab("Number of cells") + theme_bw() + ggtitle("WT Cell Count") + 
+      scale_fill_discrete(name = "Cell line")  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
       geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2) +
-      annotate("text", x=myLocIC50WT - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="WT Cis IC50", angle=90) + 
-      annotate("text", x=myLocIC50Cis - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="Cis Cis IC50", angle=90)       
+      annotate("text", x=myLocIC50WT - 0.45, y=2*max(wt_cells$mnN)/2.5, label="WT IC50", angle=90) + 
+      annotate("text", x=myLocIC50Cis - 0.45, y=2*max(wt_cells$mnN)/2.5, label="Cis IC50", angle=90)       
     
     cntsCisCis <- ggplot(tDsPltCnts[grepl("Cis|untreated", tDsPltCnts$Treatment) & grepl("Cis", tDsPltCnts$cell_line), ], aes(x = Dose, y = mnN)) + 
-      geom_bar(stat = "identity", position= position_dodge(), color = "black", fill = "#f8766d") + geom_errorbar(aes(ymin=mnN-sdN, ymax=mnN+sdN), width=.2,position=position_dodge(.9)) +
-      xlab("Dose (nm)") + ylab("Number of cells") + theme_bw() + ggtitle("No of cells Cis treat Cis") + 
-      scale_fill_discrete(name = "Cell line")  + 
-      geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2) #+
-    # annotate("text", x=myLocIC50WT - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="WT Cis IC50", angle=90) + 
-    # annotate("text", x=myLocIC50Cis - 0.15, y=2*max(tDsPltCnts$mnPer)/11, label="Cis Cis IC50", angle=90)     
+      geom_bar(stat = "identity", position= position_dodge(), color = "black", fill = "#9C179EFF") + geom_errorbar(aes(ymin=mnN-sdN, ymax=mnN+sdN), width=.2,position=position_dodge(.9)) +
+      xlab("Dose (nm)") + ylab("Number of cells") + theme_bw() + ggtitle("Cis Cell Count") + 
+      scale_fill_discrete(name = "Cell line")  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+      geom_vline(xintercept = myLocIC50WT, linetype = "dashed", linewidth = 1.2) + geom_vline(xintercept = myLocIC50Cis, linetype = "dashed", linewidth = 1.2) +
+    annotate("text", x=myLocIC50WT - 0.45, y=2*max(cis_cells$mnN)/2.5, label="WT IC50", angle=90) + 
+      annotate("text", x=myLocIC50Cis - 0.45, y=2*max(cis_cells$mnN)/2.5, label="Cis IC50", angle=90)      
     
     ### Doxorubicin
     # cntsWTDox <- ggplot(tDsPltCnts[grepl("Dox|untreated", tDsPltCnts$Treatment) & grepl("WT", tDsPltCnts$cell_line), ], aes(x = Dose, y = mnN)) + 

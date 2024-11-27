@@ -109,6 +109,23 @@ mito_fac_ar <- c(0.997, 1, 0.99, 0.995, 0.99, 0.975)
 im_ar5 <- make_image_array(plates, wells, flds, clst, cyto_fac_ar, dna_fac_ar, mito_fac_ar, n = 3)
 save.image(im_ar5, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/Figures/Figure 6 panels/clst5.png")
 
+## Im 6 
+plates = c('P9', 'P5', 'P5')
+wells = c('B - 07', 'F - 06', 'A - 02')
+flds = c( '02', '24', '18')
+obs = c(34, 56, 42)
+clst = c(22, 23, 11)
+cyto_fac_ar <- c(0.99, 1, 0.9)
+dna_fac_ar <- c(0.99, 0.99, 0.9)
+mito_fac_ar <- c(0.1, 1, 0.99)
+
+# ddx <- 2
+# 
+im_ar6 <- make_image_array(plates, wells, flds, clst, cyto_fac_ar, dna_fac_ar, mito_fac_ar, n = 3)
+#save.image(im_ar6, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/Figures/Figure 6 panels/clst6.png")
+
+plot(im_ar6)
+
   white_image_array2 <- array(255, dim = c(1320, 20, 1, 3))
   white_image2 <- as.cimg(white_image_array2)
 

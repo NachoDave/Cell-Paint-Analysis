@@ -1058,7 +1058,7 @@ pheatmap(as.matrix(t_SOM_code), cluster_rows = FALSE, show_colnames = FALSE, bre
 
 ```
 
-```{r}
+```{r, fig.height=2, fig.width = 8}
 
 ## cell counts
 
@@ -1068,6 +1068,8 @@ xx <- pltCellsInClusters(nrm_dat_clst, SOM_clst$codes[[1]],
               SOM_clst$unit.classif,
               metColsCmb, "x", k = 5)
 
+plot(xx[[1]])
+plot(xx[[3]])
 ```
 
 ```{r}
@@ -1089,13 +1091,13 @@ cell_cycle <- function(SOM_map, cell_dat, metCols, integratedIntensity, n = 5){
     tDf <- cell_dat[SOM_map$unit.classif == px,]
 
     pWT <- ggplot(tDf[tDf$cell_line == 'WT',], aes(x = Intensity_IntegratedIntensity_DNA_Corr_nuc)) + 
-      geom_histogram(bins = 300, fill = "#00bfc4") + xlim(0, 50) + xlab("Integrated Intensity") + ylab("Cell count")
+      geom_histogram(bins = 300, fill = "#0D0887FF") + xlim(0, 50) + xlab("Integrated\nIntensity") + ylab("Cell count") + ggtitle("WT Cells")
     
     pCis <- ggplot(tDf[tDf$cell_line == 'Cis',], aes(x = Intensity_IntegratedIntensity_DNA_Corr_nuc)) + 
-      geom_histogram(bins = 300, fill = "#f8766d") + xlim(0, 50) + xlab("Integrated Intensity") + ylab("Cell count")
+      geom_histogram(bins = 300, fill = "#9C179EFF") + xlim(0, 50) + xlab("Integrated\nIntensity") + ylab("Cell count") + ggtitle("Cis Cells")
     
     p <- ggplot(tDf, aes(x = Intensity_IntegratedIntensity_DNA_Corr_nuc)) + 
-      geom_histogram(bins = 300, fill = "#f8766d") + xlim(0, 50) + xlab("Integrated Intensity") + ylab("Cell count")
+      geom_histogram(bins = 300, fill = "dark green") + xlim(0, 50) + xlab("Integrated\nIntensity") + ylab("Cell count") +  ggtitle("All Cells")
     
     pCC <- pWT + pCis + p
     
@@ -1117,9 +1119,10 @@ cc <- cell_cycle(SOM_clst,
 
 SOM_map <- wt_cis_cmb_SOM_all_features25
 SOM_codes <- SOM_map$codes[[1]]
-  brkN <- 11
-  colors <- colorRampPalette(c("blue", "white", "red"))(brkN)
-  breaks <- seq(-5, 5, length.out = brkN)
+  brkN <- 21
+  #colors <- colorRampPalette(c("blue", "white", "red"))(brkN)
+  colors <- viridis(21, option = "plasma")
+  breaks <- seq(-2, 2, length.out = brkN)
   
   clst <- hclust(dist(SOM_codes, "canberra"))
 clstCut <- cutree(clst, k = 25)
@@ -1143,11 +1146,6 @@ row_phm_cut <- cumsum(sapply(unique(clstCut[rev(clst$order)] ), function(x){sum(
 # clst4 <- c(14, 15, 19, 20, 24)
 # clst5 <- c(18, 25)
   
-  clst_grps <- data.frame(Cluster = c("Cluster 2", "Cluster 2", "Cluster 1", "Cluster 1", "Cluster 1",
-                                      "Cluster 3", "Cluster 3", "Cluster 1", "Cluster 2", "Cluster 2",
-                                      "X", "X", "Cluster 3", "Cluster 4", "Cluster 4",
-                                      "X", "Cluster 3", "Cluster 5", "Cluster 4", "Cluster 4",
-                                      "X", "X", "X", "Cluster 4", "Cluster 5"))
   
   rownames(clst_grps) <- paste0("V", seq(1, 25, 1))
   
@@ -1156,18 +1154,43 @@ row_phm_cut <- cumsum(sapply(unique(clstCut[rev(clst$order)] ), function(x){sum(
   SOM_Code_HM_plot <- SOM_codes[rev(clst$order) ,All_feature_Grps$feature]
   colnames(SOM_Code_HM_plot) <- paste0("cl", 1:ncol(SOM_Code_HM_plot))
   rownames(All_feature_Grps) <- colnames(SOM_Code_HM_plot)
+  
+  
+    clst_grps <- data.frame(Cluster = c("Cluster 2", "Cluster 2", "Cluster 1", "Cluster 1", "Cluster 1",
+                                      "Cluster 3", "Cluster 3", "Cluster 1", "Cluster 2", "Cluster 2",
+                                      "Cluster 6", "Cluster 6", "Cluster 3", "Cluster 4", "Cluster 4",
+                                      "Cluster 6", "Cluster 3", "Cluster 5", "Cluster 4", "Cluster 4",
+                                      "Cluster 6", "Cluster 6", "Cluster 6", "Cluster 4", "Cluster 5"))
+  
+# Ensure the column names of SOM_Code_HM_plot match the row names of clst_grps
+rownames(clst_grps) <- paste0("V", 1:25)
 
-  phm <- pheatmap(t(SOM_Code_HM_plot), show_colnames =  FALSE, show_rownames = FALSE, breaks = breaks, color = colors, 
-                  cluster_cols = TRUE,
-                   clustering_distance_cols = "canberra",  cutree_cols = clstCut, cluster_rows = FALSE, annotation_row = All_feature_Grps[, 1, drop = FALSE],
-                  # gaps_row = All_feature_Grps_ColN, 
-                  #gaps_col = c(4, 8, 12), 
-                  annotation_col = clst_grps,
-                  border_color = 'black'
-  )
+# Correct the annotation_colors key
+anno_colours <- list(Cluster = c(`Cluster 1` = "red", 
+                                 `Cluster 2` = "black", 
+                                 `Cluster 3` = "blue", 
+                                 `Cluster 4` = "magenta", 
+                                 `Cluster 5` = "gray90", # Avoid pure white
+                                 `Cluster 6` = "cyan"))
+
+# Generate the heatmap
+phm <- pheatmap(t(SOM_Code_HM_plot), 
+                show_colnames = FALSE, 
+                show_rownames = FALSE, 
+                breaks = breaks, 
+                color = colors, 
+                cluster_cols = TRUE,
+                clustering_distance_cols = "canberra",  
+                cluster_rows = FALSE, 
+                annotation_row = All_feature_Grps[, 1, drop = FALSE],
+                gaps_row = All_feature_Grps_ColN, 
+                annotation_col = clst_grps,
+                annotation_colors = anno_colours,
+                fontsize = 8.5)
+
   
   save_pheatmap_pdf(phm, "/data/CEAT/ImageDatasets/CellPaint_WTCis_EpiCompoundDoseResponse/Figures/Figure 6 panels/hm_dendro.pdf",
-                    width = 8, height = 10)
+                    width = 8, height = 10.4)
 
   #All_feature_Grps_ColN
   #row_phm_cut
